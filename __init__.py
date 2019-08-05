@@ -4,7 +4,7 @@ import atexit
 import logging
 import os
 from datetime import timedelta, datetime, date
-from .esxi import main
+from .esxi import get_content, getvminfo, get_host_info
 
 import homeassistant.helpers.config_validation as cv
 from homeassistant.const import CONF_HOST, CONF_USERNAME, CONF_PASSWORD, CONF_PORT
@@ -14,8 +14,8 @@ from homeassistant.util import Throttle
 import voluptuous as vol
 
 import atexit
-from pyVim.connect import SmartConnectNoSSL, Disconnect
-from pyVmomi import vim
+#from pyVim.connect import SmartConnectNoSSL, Disconnect
+from pyVmomi import vim #pylint: disable=no-name-in-module
 
 from .const import (
     CONF_NAME,
@@ -29,7 +29,6 @@ from .const import (
     VERSION,
 )
 
-MAX_DEPTH = 10
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=30)
 
 _LOGGER = logging.getLogger(__name__)
@@ -63,6 +62,8 @@ async def async_setup(hass, config):
 
     # create data dictionary
     hass.data[DOMAIN_DATA] = {}
+    hass.data[DOMAIN_DATA]["hosts"] = {}
+    hass.data[DOMAIN_DATA]["vms"] = {}
 
     # get global config
     _LOGGER.debug("Setting up host %s", config[DOMAIN].get(CONF_HOST))
@@ -99,62 +100,46 @@ class esxiStats:
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
     async def update_data(self):
         try:
-            si = None
-            si = si = SmartConnectNoSSL(
-                        host=self.host,
-                        user=self.user,
-                        pwd=self.passwd,
-                        port=self.port)
-            atexit.register(Disconnect, si)
-            content = si.RetrieveContent()
+            #get data from host
+            content = get_content(self.host, self.user, self.passwd, self.port)
             
-            for child in content.rootFolder.childEntity:
-                if hasattr(child, 'vmFolder'):
-                    datacenter = child
-                    vmfolder = datacenter.vmFolder
-                    vmlist = vmfolder.childEntity
+            # create view objects
+            host_objview = content.viewManager.CreateContainerView(content.rootFolder,[vim.HostSystem],True)
+            vm_objview = content.viewManager.CreateContainerView(content.rootFolder, [vim.VirtualMachine], True)
 
-                    for vm in vmlist:
-                        #print(vm)
-                        vminfo = getvminfo(vm)
-                        #print(vminfo.summary.overallStatus)
-                        
-                        #self.hass.data[DOMAIN_DATA]["vmname"] = vminfo.summary.overallStatus
-                        #self.hass.data[DOMAIN_DATA].update([(vm.summary.config.name, vminfo.summary.overallStatus)])
-                        self.hass.data[DOMAIN_DATA][vm.summary.config.name] = (vm.summary.config.name, vminfo.summary.overallStatus)
+            # get host stats
+            esxi_hosts = host_objview.view
+            host_objview.Destroy()
 
-                        #print(self.hass.data[DOMAIN_DATA][vm.summary.config.name]["overallStatus"])
-                        #print(self.hass.data[DOMAIN_DATA])
-                        print(self.hass.data[DOMAIN_DATA][vm.summary.config.name])
+            for esxi_host in esxi_hosts:
+                host_name = esxi_host.summary.config.name.replace(" ", "_").lower()
 
-            _LOGGER.info("Testing")
+                self.hass.data[DOMAIN_DATA]["hosts"][host_name] = get_host_info(esxi_host)
+                _LOGGER.debug("Getting stats for host: %s", host_name)
 
-            print ("Just pfSense status: ", self.hass.data[DOMAIN_DATA]['pfSense'])
-            #self.getvms = esxiConnect(self.host,self.user,self.passwd) 
+                #print(esxi_host.summary)
+                
+            # get vm stats
+            vm_list = vm_objview.view
+            vm_objview.Destroy()
 
-            #self.hass.data[DOMAIN_DATA]["vminfo"] = self.getvms
+            for vm in vm_list:
+                vm_name = vm.summary.config.name.replace(" ", "_").lower()
+
+                vm_data = {
+                    "vm_name": vm_name,
+                    "vm_status": vm.summary.overallStatus,
+                    "vm_state": vm.summary.runtime.powerState,
+                    "vm_cpu": vm.summary.config.numCpu,
+                    "vm_memory": vm.summary.config.memorySizeMB
+                }
+                self.hass.data[DOMAIN_DATA]["vms"][vm_name] = vm_data
+                _LOGGER.debug("Getting stats for vm: %s", vm_name)
+
+            print(self.hass.data[DOMAIN_DATA]["hosts"])
+            print(self.hass.data[DOMAIN_DATA]["vms"])
         except Exception as error:
             _LOGGER.error("ERROR: %s", error)
-
-
-def getvminfo(vm, depth=1):
-    """
-    Print information for a particular virtual machine or recurse into a folder
-    with depth protection
-    """
-
-    # if this is a group it will have children. if it does, recurse into them
-    # and then return
-    if hasattr(vm, 'childEntity'):
-        if depth > MAX_DEPTH:
-            return
-        vmlist = vm.childEntity
-        for child in vmlist:
-            getvminfo(child, depth+1)
-        return
-
-    #summary = vm.summary
-    return(vm)
 
 async def check_files(hass):
     """Return bool that indicates if all files are present."""
