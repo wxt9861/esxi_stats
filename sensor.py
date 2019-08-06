@@ -15,6 +15,7 @@ async def async_setup_platform(
     for condition in hass.data[DOMAIN_DATA]["monitored_conditions"]:
         async_add_entities([esxiSensor(hass, discovery_info, condition)], True)
 
+
 class esxiSensor(Entity):
     """esxi_stats Sensor class."""
 
@@ -57,7 +58,6 @@ class esxiSensor(Entity):
     @property
     def name(self):
         """Return the name of the sensor."""
-        #return self._name
         return "{} {}".format(self._name, self._condition)
 
     @property
@@ -70,8 +70,8 @@ class esxiSensor(Entity):
         """Return the unit the value is expressed in."""
         return self._measurement
 
-    #@property
-    #def icon(self):
+    # @property
+    # def icon(self):
     #    """Return the icon of the sensor."""
     #    return ICON
 

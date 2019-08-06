@@ -7,13 +7,20 @@ from datetime import timedelta, datetime, date
 from .esxi import get_content, get_host_info, get_datastore_info, get_vm_info
 
 import homeassistant.helpers.config_validation as cv
-from homeassistant.const import CONF_HOST, CONF_USERNAME, CONF_PASSWORD, CONF_PORT, CONF_VERIFY_SSL, CONF_MONITORED_CONDITIONS
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_USERNAME,
+    CONF_PASSWORD,
+    CONF_PORT,
+    CONF_VERIFY_SSL,
+    CONF_MONITORED_CONDITIONS,
+)
 from homeassistant.helpers import discovery
 from homeassistant.util import Throttle
 
 import voluptuous as vol
 
-from pyVmomi import vim #pylint: disable=no-name-in-module
+from pyVmomi import vim  # pylint: disable=no-name-in-module
 
 from .const import (
     CONF_NAME,
@@ -32,9 +39,9 @@ _LOGGER = logging.getLogger(__name__)
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=60)
 
 MONITORED_CONDITIONS = {
-    'hosts': ['ESXi Host','',''],
-    'vms': ['Virtual Machines','',''],
-    'datastores': ['Datastores','','']
+    "hosts": ["ESXi Host", "", ""],
+    "vms": ["Virtual Machines", "", ""],
+    "datastores": ["Datastores", "", ""],
 }
 
 CONFIG_SCHEMA = vol.Schema(
@@ -48,12 +55,15 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Optional(CONF_VERIFY_SSL, default=False): cv.boolean,
                 vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
                 vol.Optional("scan_interval", default=60): cv.positive_int,
-                vol.Optional(CONF_MONITORED_CONDITIONS, default=['hosts']): vol.All(cv.ensure_list, [vol.In(MONITORED_CONDITIONS)]),
+                vol.Optional(CONF_MONITORED_CONDITIONS, default=["hosts"]): vol.All(
+                    cv.ensure_list, [vol.In(MONITORED_CONDITIONS)]
+                ),
             }
         )
     },
     extra=vol.ALLOW_EXTRA,
 )
+
 
 async def async_setup(hass, config):
     # startup message
@@ -70,7 +80,9 @@ async def async_setup(hass, config):
     hass.data[DOMAIN_DATA]["hosts"] = {}
     hass.data[DOMAIN_DATA]["datastores"] = {}
     hass.data[DOMAIN_DATA]["vms"] = {}
-    hass.data[DOMAIN_DATA]["monitored_conditions"] = config[DOMAIN].get(CONF_MONITORED_CONDITIONS)
+    hass.data[DOMAIN_DATA]["monitored_conditions"] = config[DOMAIN].get(
+        CONF_MONITORED_CONDITIONS
+    )
 
     # get global config
     _LOGGER.debug("Setting up host %s", config[DOMAIN].get(CONF_HOST))
@@ -88,6 +100,8 @@ async def async_setup(hass, config):
         )
 
     return True
+
+
 class esxiStats:
     def __init__(self, hass, config):
         """Initialize the class."""
@@ -102,35 +116,48 @@ class esxiStats:
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
     async def update_data(self):
         try:
-            #get data from host
-            content = get_content(self.host, self.user, self.passwd, self.port, self.ssl)
-            
+            # get data from host
+            content = get_content(
+                self.host, self.user, self.passwd, self.port, self.ssl
+            )
+
             # create/distroy view objects
-            host_objview = content.viewManager.CreateContainerView(content.rootFolder,[vim.HostSystem],True)
-            ds_objview = content.viewManager.CreateContainerView(content.rootFolder, [vim.Datastore], True)
-            vm_objview = content.viewManager.CreateContainerView(content.rootFolder, [vim.VirtualMachine], True)
-            
+            host_objview = content.viewManager.CreateContainerView(
+                content.rootFolder, [vim.HostSystem], True
+            )
+            ds_objview = content.viewManager.CreateContainerView(
+                content.rootFolder, [vim.Datastore], True
+            )
+            vm_objview = content.viewManager.CreateContainerView(
+                content.rootFolder, [vim.VirtualMachine], True
+            )
+
             esxi_hosts = host_objview.view
             ds_list = ds_objview.view
             vm_list = vm_objview.view
-            
+
             host_objview.Destroy()
             ds_objview.Destroy()
             vm_objview.Destroy()
 
             # get host stats
-            for esxi_host in esxi_hosts:
-                host_name = esxi_host.summary.config.name.replace(" ", "_").lower()
+            if "hosts" in self.monitored_conditions:
+                for esxi_host in esxi_hosts:
+                    host_name = esxi_host.summary.config.name.replace(" ", "_").lower()
 
-                self.hass.data[DOMAIN_DATA]["hosts"][host_name] = get_host_info(esxi_host)
-                _LOGGER.debug("Getting stats for host: %s", host_name)
+                    self.hass.data[DOMAIN_DATA]["hosts"][host_name] = get_host_info(
+                        esxi_host
+                    )
+                    _LOGGER.debug("Getting stats for host: %s", host_name)
 
             # get datastore stats
             if "datastores" in self.monitored_conditions:
                 for ds in ds_list:
                     ds_name = ds.summary.name.replace(" ", "_").lower()
 
-                    self.hass.data[DOMAIN_DATA]["datastores"][ds_name] = get_datastore_info(ds)
+                    self.hass.data[DOMAIN_DATA]["datastores"][
+                        ds_name
+                    ] = get_datastore_info(ds)
                     _LOGGER.debug("Getting stats for datastore: %s", ds_name)
 
             # get vm stats
@@ -141,9 +168,10 @@ class esxiStats:
                     self.hass.data[DOMAIN_DATA]["vms"][vm_name] = get_vm_info(vm)
                     _LOGGER.debug("Getting stats for vm: %s", vm_name)
 
-            #print(self.hass.data[DOMAIN_DATA]["datastores"])
+            # print(self.hass.data[DOMAIN_DATA]["datastores"])
         except Exception as error:
             _LOGGER.error("ERROR: %s", error)
+
 
 async def check_files(hass):
     """Return bool that indicates if all files are present."""
