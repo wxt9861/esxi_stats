@@ -46,7 +46,7 @@ class esxiSensor(Entity):
 
         # set vm measurement/attirbutes
         if self._condition == "vms":
-            self._measurement = "Virtual Machone(s)"
+            self._measurement = "virtual machine(s)"
             for key, value in self.hass.data[DOMAIN_DATA][self._condition].items():
                 self.attr[key] = value
 

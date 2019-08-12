@@ -103,7 +103,7 @@ logger:
 
 ## Presenting Data in Home Assistant
 
-A custom lovelace card would be ideal, but for now I've explored existing available tools since I'm not too thrilled about diving into custom cards creating.
+A custom lovelace card would be ideal, but for now I explored existing available tools since I'm not too thrilled about diving into creating custom cards
 
 - You can break out the data into seperate sensors
   - See home-assistant documentation
