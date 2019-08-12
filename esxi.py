@@ -3,8 +3,6 @@ import atexit
 from pyVim.connect import SmartConnect, SmartConnectNoSSL, Disconnect
 from pyVmomi import vim  # pylint: disable=no-name-in-module
 
-# from .tools import cli
-
 
 def get_content(host, user, pwd, port, ssl):
     si = None
