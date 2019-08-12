@@ -1,0 +1,58 @@
+## Install list-card from here https://github.com/custom-cards/list-card
+resources:
+  - url: /local/list-card.js?v=0
+    type: js
+
+views:
+  - title: ESXi Stats Example
+    cards:
+
+      ## List of hosts
+      - type: custom:list-card
+        entity: sensor.esxi_stats_hosts
+        title: Hosts
+        columns:
+          - title: Host Name
+            field: name
+          - title: Version
+            field: version
+          - title: Uptime (H)
+            field: uptime_hours
+          - title: CPU Use (GHz)
+            field: cpuusage_ghz
+          - title: Mem Use (GB)
+            field: memusage_gb
+
+      ## List of Virtual Machines
+      - type: custom:list-card
+        entity: sensor.esxi_stats_vms
+        title: VMs
+        columns:
+          - title: 'VM Name'
+            field: name
+          - title: 'Status'
+            field: status
+          - title: 'State'
+            field: state
+          - title: 'CPUs'
+            field: cpu_count
+          - title: Memory (MB)
+            field: memory_allocated_mb
+
+      ## List of datastores
+      - type: custom:list-card
+        entity: sensor.esxi_stats_datastores
+        title: Datastores
+        columns:
+          - title: Name
+            field: name
+          - title: Free Space (GB)
+            field: free_space_gb
+          - title: Capacity (GB)
+            field: total_space_gb
+          - title: Hosts
+            field: connected_hosts
+          - title: VMs
+            field: virtual_machines
+          - title: Type
+            field: type
