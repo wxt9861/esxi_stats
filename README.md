@@ -2,11 +2,11 @@
 
 ESXi component for Home Assistant
 This component will gather stats from an ESXi server or vCenter. Information gathered can be Host info, Datastore info and VM info. Information is gathered every 60 seconds.
-A sensor is creted for each monitored condition. If you're monitoring hosts, datastores, and vms, 3 sensors are createad. Stats are stored as sensor attributes and can be retreieved using various tools available for Home Assistant.
+A sensor is created for each monitored condition. If you're monitoring hosts, datastores, and vms, 3 sensors are createad. Stats are stored as sensor attributes and can be retreieved using various tools available for Home Assistant.
 
 The component pulls the following information:
 
-- Hosts
+- Hosts (sensor.esxi_stats_hosts)
   - host name
   - host version
   - host uptime in hours
@@ -15,7 +15,7 @@ The component pulls the following information:
   - host memory total in GB
   - host memory usage in GB
 
-- Datastores
+- Datastores (sensor.esxi_stats_datastores)
   - Datastore name
   - Datastore type
   - Free space in GB
@@ -23,15 +23,15 @@ The component pulls the following information:
   - number of connected hosts
   - number of residing VMs
 
-- Virtual Machines
+- Virtual Machines (sensor.esxi_stats_vms)
   - VM name
   - VM status (normal, warning, etc)
   - VM state (running, suspended, etc)
   - VM uptime in hours
   - Number of configured CPUs
   - CPU usage %
-  - Configured memory in GB
-  - Used memory in GB
+  - Configured memory in MB
+  - Used memory in MB
   - Storage used in GB
   - VM Tools status (tools running, not running, not install, etc)
   - VM guest OS
