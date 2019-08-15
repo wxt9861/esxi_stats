@@ -3,8 +3,8 @@ DOMAIN_DATA = "{}_data".format(DOMAIN)
 
 PLATFORMS = ["sensor"]
 REQUIRED_FILES = ["const.py", "esxi.py", "manifest.json", "sensor.py"]
-VERSION = "0.1.0"
-ISSUE_URL = "https://github.com/wxt9861/esxiStats/issues"
+VERSION = "0.1.1"
+ISSUE_URL = "https://github.com/wxt9861/esxi_stats/issues"
 
 STARTUP = """
 -------------------------------------------------------------------

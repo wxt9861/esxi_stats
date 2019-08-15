@@ -1,6 +1,5 @@
 """ESXi Stats Integration."""
 
-import atexit
 import logging
 import os
 from datetime import timedelta, datetime, date
@@ -146,28 +145,28 @@ class esxiStats:
                 for esxi_host in esxi_hosts:
                     host_name = esxi_host.summary.config.name.replace(" ", "_").lower()
 
+                    _LOGGER.debug("Getting stats for host: %s", host_name)
                     self.hass.data[DOMAIN_DATA]["hosts"][host_name] = get_host_info(
                         esxi_host
                     )
-                    _LOGGER.debug("Getting stats for host: %s", host_name)
 
             # get datastore stats
             if "datastores" in self.monitored_conditions:
                 for ds in ds_list:
                     ds_name = ds.summary.name.replace(" ", "_").lower()
 
+                    _LOGGER.debug("Getting stats for datastore: %s", ds_name)
                     self.hass.data[DOMAIN_DATA]["datastores"][
                         ds_name
                     ] = get_datastore_info(ds)
-                    _LOGGER.debug("Getting stats for datastore: %s", ds_name)
 
             # get vm stats
             if "vms" in self.monitored_conditions:
                 for vm in vm_list:
                     vm_name = vm.summary.config.name.replace(" ", "_").lower()
 
-                    self.hass.data[DOMAIN_DATA]["vms"][vm_name] = get_vm_info(vm)
                     _LOGGER.debug("Getting stats for vm: %s", vm_name)
+                    self.hass.data[DOMAIN_DATA]["vms"][vm_name] = get_vm_info(vm)
 
 
 async def check_files(hass):
