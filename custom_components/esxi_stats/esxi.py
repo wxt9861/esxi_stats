@@ -1,7 +1,9 @@
-from __future__ import print_function
 import atexit
+import logging
 from pyVim.connect import SmartConnect, SmartConnectNoSSL, Disconnect
 from pyVmomi import vim  # pylint: disable=no-name-in-module
+
+_LOGGER = logging.getLogger(__name__)
 
 
 def get_content(host, user, pwd, port, ssl):
@@ -40,6 +42,8 @@ def get_host_info(host):
         "memusage_gb": host_mem_usage,
     }
 
+    _LOGGER.debug(host_data)
+
     return host_data
 
 
@@ -58,6 +62,8 @@ def get_datastore_info(ds):
         "connected_hosts": len(ds.host),
         "virtual_machines": len(ds.vm),
     }
+
+    _LOGGER.debug(ds_data)
 
     return ds_data
 
@@ -79,14 +85,30 @@ def get_vm_info(vm):
     else:
         vm_state = vm_sum.runtime.powerState
 
-    # set other attributes based on vm power state
+    # set runtime related attributes based on vm power state
     if vm_state == "running":
-        vm_cpu_usage = round(
-            ((vm_sum.quickStats.overallCpuUsage / vm_run.maxCpuUsage) * 100), 0
-        )
 
-        vm_mem_usage = round(vm_sum.quickStats.hostMemoryUsage, 2)
-        vm_uptime = round(vm_sum.quickStats.uptimeSeconds / 3600, 1)
+        # check if stats exist and set values, otherwise return "n/a"
+        if vm_sum.quickStats.overallCpuUsage and vm_run.maxCpuUsage:
+            vm_cpu_usage = round(
+                ((vm_sum.quickStats.overallCpuUsage / vm_run.maxCpuUsage) * 100), 0
+            )
+        else:
+            vm_cpu_usage = "n/a"
+            _LOGGER.debug("Unable to return cpu usage for %s", vm_name)
+
+        if vm_sum.quickStats.hostMemoryUsage:
+            vm_mem_usage = round(vm_sum.quickStats.hostMemoryUsage, 2)
+        else:
+            vm_mem_usage = "n/a"
+            _LOGGER.debug("Unable to return memory usage for %s", vm_name)
+
+        if vm_sum.quickStats.uptimeSeconds:
+            vm_uptime = round(vm_sum.quickStats.uptimeSeconds / 3600, 1)
+        else:
+            vm_uptime = "n/a"
+            _LOGGER.debug("Unable to return uptime for %s", vm_name)
+
         vm_guest_os = vm_sum.guest.guestFullName
     else:
         vm_cpu_usage = "n/a"
@@ -107,5 +129,7 @@ def get_vm_info(vm):
         "tools_status": vm_tools_status,
         "guest_os": vm_guest_os,
     }
+
+    _LOGGER.debug(vm_data)
 
     return vm_data

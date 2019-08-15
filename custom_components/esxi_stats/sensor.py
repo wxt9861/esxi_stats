@@ -70,11 +70,6 @@ class esxiSensor(Entity):
         """Return the unit the value is expressed in."""
         return self._measurement
 
-    # @property
-    # def icon(self):
-    #    """Return the icon of the sensor."""
-    #    return ICON
-
     @property
     def device_state_attributes(self):
         """Return the state attributes."""

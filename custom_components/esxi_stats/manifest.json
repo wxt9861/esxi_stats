@@ -1,7 +1,7 @@
 {
     "domain": "esxi_stats",
     "name": "esxi_stats",
-    "documentation": "https://www.github.com/wxt9861",
+    "documentation": "https://github.com/wxt9861/esxi_stats",
     "dependencies": [],
     "codeowners": ["@wxt9861"],
     "requirements": ["pyvmomi==6.7.1.2018.12"]
