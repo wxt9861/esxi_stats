@@ -2,7 +2,7 @@
 import logging
 from homeassistant.helpers.entity import Entity
 
-from .const import DOMAIN, DOMAIN_DATA
+from .const import DOMAIN, DOMAIN_DATA, DEFAULT_NAME
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -15,15 +15,22 @@ async def async_setup_platform(
     for condition in hass.data[DOMAIN_DATA]["monitored_conditions"]:
         async_add_entities([esxiSensor(hass, discovery_info, condition)], True)
 
+async def async_setup_entry(hass, config_entry, async_add_devices):
+    """Setup sensor platform."""
+    config = config_entry.data
+    for condition in hass.data[DOMAIN_DATA]["monitored_conditions"]:
+        async_add_devices([esxiSensor(hass, config, condition)], True)
 
 class esxiSensor(Entity):
     """esxi_stats Sensor class."""
 
-    def __init__(self, hass, config, condition):
+    def __init__(self, hass, config, condition, config_entry = None):
         self.hass = hass
         self.attr = {}
+        self.config_entry = config_entry
         self._state = None
-        self._name = config["name"]
+        self.config = config
+        self._name = config.get("name", DEFAULT_NAME)
         self._condition = condition
 
     async def async_update(self):
@@ -51,6 +58,12 @@ class esxiSensor(Entity):
                 self.attr[key] = value
 
     @property
+    def unique_id(self):
+        """Return a unique ID to use for this binary_sensor."""
+        return "{}_52446d23-5e54-4525-8018-56da195d276f_{}".format(
+            self.config["host"].replace(".", "_"), self._condition)
+
+    @property
     def should_poll(self):
         """Return the name of the sensor."""
         return True
@@ -74,3 +87,15 @@ class esxiSensor(Entity):
     def device_state_attributes(self):
         """Return the state attributes."""
         return self.attr
+
+    @property
+    def device_info(self):
+        if self.config_entry is None:
+            indentifier = {(DOMAIN, self.config["host"].replace(".", "_"))}
+        else:
+            indentifier = {(DOMAIN, self.config_entry.entry_id)}
+        return {
+            "identifiers": indentifier,
+            "name": "ESXi Stats",
+            "manufacturer": "VMware, Inc.",
+        }
