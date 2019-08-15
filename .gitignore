@@ -104,3 +104,6 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# .devcontainer configuration
+.devcontainer/configuration.yaml
