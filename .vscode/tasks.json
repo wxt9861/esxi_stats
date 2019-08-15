@@ -56,20 +56,6 @@
                 "panel": "new"
             },
             "problemMatcher": []
-        },
-        {
-            "label": "Install TabNine Cloud AutoCompleter",
-            "type": "shell",
-            "command": "source .devcontainer/custom_component_helper && InstallTabNine",
-            "group": {
-                "kind": "test",
-                "isDefault": true,
-            },
-            "presentation": {
-                "reveal": "always",
-                "panel": "new"
-            },
-            "problemMatcher": []
         }
     ]
 }
