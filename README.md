@@ -7,6 +7,7 @@ A sensor is created for each monitored condition. If you're monitoring hosts, da
 The component pulls the following information:
 
 - Hosts (sensor.esxi_stats_hosts)
+
   - host name
   - host version
   - host uptime in hours
@@ -16,6 +17,7 @@ The component pulls the following information:
   - host memory usage in GB
 
 - Datastores (sensor.esxi_stats_datastores)
+
   - Datastore name
   - Datastore type
   - Free space in GB
@@ -46,7 +48,7 @@ Sensor Example
 1. Open HACS > Settings
 2. In ADD CUSTOM REPOSITORY box paste this git's URL <https://github.com/wxt9861/esxi_stats> and select type Integration
 3. Click INSTALL
-4. Make necessary modifications to your configuration.yaml
+4. Configure via Integrations page or Make necessary modifications to your configuration.yaml
 5. Restart Home Assistant
 
 ### Manual install
@@ -68,6 +70,15 @@ Sensor Example
 | `password`             | `string`  | `True`   | None    | Password to ESXi host or vCenter                                                                                                                                                                                                                                                                                |
 | `verify_ssl`           | `boolean` | False    | False   | Leave at default if your ESXi host or vCenter is using a self-signed certificate (most likely scneario). Change to **true** if you replaced a self-signed certificate. If you're using a self-signed cert and set this to True, the component will not be able to establish a connection with the host/vcenter. |
 | `monitored_conditions` | `list`    | False    | hosts   | What information do you want to get from the host/vcenter. Available options are **hosts**, **datastores**, **vms**                                                                                                                                                                                             |
+
+ESXi Stats can be configured via Integrations page or in yaml
+
+### Integration page
+
+1. From Home Assistant UI go to Confinguration > Integrations
+2. Click the orange + icon at the bottom right to bring up new integration window
+3. Find and click on ESXi Stats
+4. Enter required information/select wanted stats and click Submit
 
 ### configuration.yaml examples
 
