@@ -1,0 +1,27 @@
+{
+    "config": {
+        "title": "ESXi Stats",
+        "step": {
+            "user": {
+                "title": "ESXi Stats",
+                "description": "If you need help with the configuration have a look here: https://github.com/wxt9861/esxi_stats/blob/master/README.md",
+                "data": {
+                    "host": "IP Address or host name (FQDN)",
+                    "port": "Port",
+                    "username": "Username",
+                    "password": "Password",
+                    "verify_ssl": "Verify SSL",
+                    "hosts": "Get information about the hosts",
+                    "datastores": "Get information about the datastores",
+                    "vms": "Get information about the VM's"
+                }
+            }
+        },
+        "error": {
+            "communication": "Could not access ESXi with this configuration, check the values."
+        },
+        "abort": {
+            "single_instance_allowed": "Only a single configuration of ESXI Stats is allowed."
+        }
+    }
+}

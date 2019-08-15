@@ -8,6 +8,8 @@ from .esxi import get_content, get_host_info, get_datastore_info, get_vm_info
 from pyVmomi import vim  # pylint: disable=no-name-in-module
 import voluptuous as vol
 
+from homeassistant import config_entries
+from homeassistant.exceptions import ConfigEntryNotReady
 import homeassistant.helpers.config_validation as cv
 from homeassistant.const import (
     CONF_HOST,
@@ -62,6 +64,10 @@ CONFIG_SCHEMA = vol.Schema(
 
 
 async def async_setup(hass, config):
+    """Set up this integration using yaml."""
+    if DOMAIN not in config:
+        # Using config entries (UI COnfiguration)
+        return True
     # startup message
     startup = STARTUP.format(name=DOMAIN, version=VERSION, issueurl=ISSUE_URL)
     _LOGGER.info(startup)
@@ -73,6 +79,7 @@ async def async_setup(hass, config):
 
     # create data dictionary
     hass.data[DOMAIN_DATA] = {}
+    hass.data[DOMAIN_DATA]["configuration"] = "yaml"
     hass.data[DOMAIN_DATA]["hosts"] = {}
     hass.data[DOMAIN_DATA]["datastores"] = {}
     hass.data[DOMAIN_DATA]["vms"] = {}
@@ -95,6 +102,73 @@ async def async_setup(hass, config):
             )
         )
 
+    # Tell HA that we used YAML for the configuration
+    hass.async_create_task(
+        hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": config_entries.SOURCE_IMPORT}, data={}
+        )
+    )
+
+    return True
+
+async def async_setup_entry(hass, config_entry):
+    """Set up this integration using UI."""
+    conf = hass.data.get(DOMAIN_DATA)
+    if config_entry.source == config_entries.SOURCE_IMPORT:
+        if conf is None:
+            hass.async_create_task(
+                hass.config_entries.async_remove(config_entry.entry_id)
+            )
+        # This is using YAML for configuration
+        return False
+
+    # check all required files
+    file_check = await check_files(hass)
+    if not file_check:
+        return False
+
+    config = {DOMAIN: config_entry.data}
+    config[DOMAIN]["monitored_conditions"] = []
+
+    # create data dictionary
+    hass.data[DOMAIN_DATA] = {}
+    hass.data[DOMAIN_DATA]["configuration"] = "config_flow"
+    hass.data[DOMAIN_DATA]["hosts"] = {}
+    hass.data[DOMAIN_DATA]["datastores"] = {}
+    hass.data[DOMAIN_DATA]["vms"] = {}
+    hass.data[DOMAIN_DATA]["monitored_conditions"] = []
+
+    if config_entry.data["hosts"]:
+        hass.data[DOMAIN_DATA]["monitored_conditions"].append("hosts")
+        config[DOMAIN]["monitored_conditions"].append("hosts")
+    if config_entry.data["datastores"]:
+        hass.data[DOMAIN_DATA]["monitored_conditions"].append("datastores")
+        config[DOMAIN]["monitored_conditions"].append("datastores")
+    if config_entry.data["vms"]:
+        hass.data[DOMAIN_DATA]["monitored_conditions"].append("vms")
+        config[DOMAIN]["monitored_conditions"].append("vms")
+
+
+    # get global config
+    _LOGGER.debug("Setting up host %s", config[DOMAIN].get(CONF_HOST))
+    hass.data[DOMAIN_DATA]["client"] = esxiStats(hass, config)
+
+    try:
+        get_content(
+            config[DOMAIN]["host"], config[DOMAIN]["username"],
+            config[DOMAIN]["password"], config[DOMAIN]["port"],
+            config[DOMAIN]["verify_ssl"],)
+    except Exception as exception:  # pylint: disable=broad-except
+        _LOGGER.error(exception)
+        raise ConfigEntryNotReady
+
+    # load platforms
+    for platform in PLATFORMS:
+        hass.async_add_job(
+            hass.config_entries.async_forward_entry_setup(
+                config_entry, platform
+            )
+        )
     return True
 
 
@@ -185,3 +259,19 @@ async def check_files(hass):
         returnvalue = True
 
     return returnvalue
+
+
+async def async_remove_entry(hass, config_entry):
+    """Handle removal of an entry."""
+    if hass.data.get(DOMAIN_DATA, {}).get("configuration") == "yaml":
+        hass.async_create_task(
+                hass.config_entries.flow.async_init(
+                    DOMAIN,
+                    context={"source": config_entries.SOURCE_IMPORT},
+                    data={},
+                )
+            )
+    else:
+        for plafrom in PLATFORMS:
+            await hass.config_entries.async_forward_entry_unload(config_entry, plafrom)
+        _LOGGER.info("Successfully removed the ESXi Stats integration")
