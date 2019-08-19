@@ -1,12 +1,12 @@
 import atexit
 import logging
 from pyVim.connect import SmartConnect, SmartConnectNoSSL, Disconnect
-from pyVmomi import vim  # pylint: disable=no-name-in-module
+from pyVmomi import vim, vmodl  # pylint: disable=no-name-in-module
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def get_content(host, user, pwd, port, ssl):
+async def get_content(host, user, pwd, port, ssl):
     si = None
 
     # connect depending on SSL_VERIFY setting
@@ -18,6 +18,13 @@ def get_content(host, user, pwd, port, ssl):
     atexit.register(Disconnect, si)
 
     return si.RetrieveContent()
+
+
+async def check_license(lic):
+    for feature in lic.licenses[0].properties:
+        if feature.key == "feature":
+            if feature.value.key == "vimapi":
+                return True
 
 
 def get_host_info(host):
@@ -71,9 +78,17 @@ def get_datastore_info(ds):
 def get_vm_info(vm):
     vm_sum = vm.summary
     vm_run = vm.runtime
+    vm_snap = vm.snapshot
+
     vm_name = vm_sum.config.name.replace(" ", "_").lower()
     vm_used_space = round(vm_sum.storage.committed / 1073741824, 2)
     vm_tools_status = vm_sum.guest.toolsStatus
+
+    # if snapshots present, get number of snapshots
+    if vm_snap is not None:
+        vm_snapshots = len(listSnapshots(vm_snap.rootSnapshotList))
+    else:
+        vm_snapshots = 0
 
     # set vm_state based on power state
     if vm_sum.runtime.powerState == "poweredOn":
@@ -128,8 +143,38 @@ def get_vm_info(vm):
         "used_space_gb": vm_used_space,
         "tools_status": vm_tools_status,
         "guest_os": vm_guest_os,
+        "snapshots": vm_snapshots,
     }
 
     _LOGGER.debug(vm_data)
 
     return vm_data
+
+
+def listSnapshots(snapshots):
+    snapshot_data = []
+
+    for snapshot in snapshots:
+        snapshot_data.append(snapshot.id)
+        snapshot_data = snapshot_data + listSnapshots(snapshot.childSnapshotList)
+
+    return snapshot_data
+
+
+def vm_cmnd(target_vm, target_cmnd, conn):
+    content = conn
+    objView = content.viewManager.CreateContainerView(
+        content.rootFolder, [vim.VirtualMachine], True
+    )
+    data = objView.view
+    objView.Destroy()
+
+    try:
+        tasks = [  # pylint: disable=unused-variable
+            vm.PowerOn() for vm in data if vm.name in target_vm
+        ]
+
+    except vmodl.MethodFault as e:
+        _LOGGER.info(e.msg)
+    except Exception as e:
+        _LOGGER.info(str(e))

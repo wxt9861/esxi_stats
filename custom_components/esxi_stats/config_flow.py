@@ -104,7 +104,7 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
     async def _test_communication(self, host, port, verify_ssl, username, password):
         """Return true if the communication is ok."""
         try:
-            content = get_content(
+            content = await get_content(
                 host, username, password, port, verify_ssl
             )
             _LOGGER.debug(content)

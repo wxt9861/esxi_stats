@@ -1,0 +1,9 @@
+vm_command:
+  description: Takes a snapshot of a Virtual Machine
+  fields:
+    vm:
+      description: Name of the Virtual Machine
+      example: 'vm_name'
+    command:
+      description: Command to run against Virtual Machine
+      example: 'turn_on'

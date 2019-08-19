@@ -3,7 +3,7 @@ DOMAIN_DATA = "{}_data".format(DOMAIN)
 
 PLATFORMS = ["sensor"]
 REQUIRED_FILES = ["const.py", "esxi.py", "manifest.json", "sensor.py", "config_flow.py", ".translations/en.json"]
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 ISSUE_URL = "https://github.com/wxt9861/esxi_stats/issues"
 
 STARTUP = """
@@ -20,3 +20,5 @@ CONF_NAME = "name"
 
 DEFAULT_NAME = "ESXi Stats"
 DEFAULT_PORT = 443
+
+AVAILABLE_COMMANDS_VM = ["turn_on", "turn_off", "take_snapshot"]
