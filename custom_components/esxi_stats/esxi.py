@@ -6,21 +6,32 @@ from pyVmomi import vim, vmodl  # pylint: disable=no-name-in-module
 _LOGGER = logging.getLogger(__name__)
 
 
-async def get_content(host, user, pwd, port, ssl):
+async def esx_connect(host, user, pwd, port, ssl):
     si = None
 
     # connect depending on SSL_VERIFY setting
     if ssl == False:
         si = SmartConnectNoSSL(host=host, user=user, pwd=pwd, port=port)
+        current_session = si.content.sessionManager.currentSession.key
+        _LOGGER.debug("Logged in - session %s", current_session)
     else:
         si = SmartConnect(host=host, user=user, pwd=pwd, port=port)
+        current_session = si.content.sessionManager.currentSession.key
+        _LOGGER.debug("Logged in - session %s", current_session)
 
-    atexit.register(Disconnect, si)
-
-    return si.RetrieveContent()
+    return si
 
 
-async def check_license(lic):
+def esx_disconnect(conn):
+    current_session = conn.content.sessionManager.currentSession.key
+    try:
+        conn._stub.pool[0][0].sock.shutdown(2)
+        _LOGGER.debug("Logged out - session %s", current_session)
+    except Exception as e:
+        _LOGGER.debug(e)
+
+
+def check_license(lic):
     for feature in lic.licenses[0].properties:
         if feature.key == "feature":
             if feature.value.key == "vimapi":

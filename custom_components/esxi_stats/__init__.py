@@ -5,7 +5,8 @@ import os
 from datetime import timedelta, datetime, date
 
 from .esxi import (
-    get_content,
+    esx_connect,
+    esx_disconnect,
     check_license,
     get_host_info,
     get_datastore_info,
@@ -100,7 +101,7 @@ async def async_setup(hass, config):
     hass.data[DOMAIN_DATA]["client"] = esxiStats(hass, config)
 
     try:
-        conn = await get_content(
+        conn = await esx_connect(
             config[DOMAIN]["host"],
             config[DOMAIN]["username"],
             config[DOMAIN]["password"],
@@ -108,7 +109,10 @@ async def async_setup(hass, config):
             config[DOMAIN]["verify_ssl"],
         )
 
-        lic = await check_license(conn.licenseManager)
+        # # get license type
+        lic = check_license(conn.RetrieveContent().licenseManager)
+
+        esx_disconnect(conn)
     except Exception as exception:  # pylint: disable=broad-except
         _LOGGER.error(exception)
 
@@ -130,8 +134,8 @@ async def async_setup(hass, config):
         )
     )
 
+    # if lisense allows API write, register services
     if lic:
-
         def vm_command(call):
             vm = call.data["vm"]
             cmnd = call.data["command"]
@@ -145,7 +149,6 @@ async def async_setup(hass, config):
                 _LOGGER.error("%s is not a supported command", cmnd)
 
         hass.services.async_register(DOMAIN, "vm_command", vm_command)
-
     else:
         _LOGGER.info(
             "Service calls are disabled - %s appears to have a free ESXi license",
@@ -197,7 +200,7 @@ async def async_setup_entry(hass, config_entry):
     hass.data[DOMAIN_DATA]["client"] = esxiStats(hass, config)
 
     try:
-        conn = await get_content(
+        conn = await esx_connect(
             config[DOMAIN]["host"],
             config[DOMAIN]["username"],
             config[DOMAIN]["password"],
@@ -205,7 +208,10 @@ async def async_setup_entry(hass, config_entry):
             config[DOMAIN]["verify_ssl"],
         )
 
-        lic = await check_license(conn.licenseManager)
+        # get license type
+        lic = check_license(conn.RetrieveContent().licenseManager)
+
+        esx_disconnect(conn)
     except Exception as exception:  # pylint: disable=broad-except
         _LOGGER.error(exception)
         raise ConfigEntryNotReady
@@ -216,9 +222,8 @@ async def async_setup_entry(hass, config_entry):
             hass.config_entries.async_forward_entry_setup(config_entry, platform)
         )
 
-    # check lisense and register services if supported
+    # if lisense allows API write, register services
     if lic:
-
         def vm_command(call):
             vm = call.data["vm"]
             cmnd = call.data["command"]
@@ -232,7 +237,6 @@ async def async_setup_entry(hass, config_entry):
                 _LOGGER.error("%s is not a supported command", cmnd)
 
         hass.services.async_register(DOMAIN, "vm_command", vm_command)
-
     else:
         _LOGGER.info(
             "Service calls are disabled - %s appears to have a free ESXi license",
@@ -256,10 +260,11 @@ class esxiStats:
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
     async def update_data(self):
         try:
-            # get data from host
-            content = await get_content(
+            # connect and get data from host
+            conn = await esx_connect(
                 self.host, self.user, self.passwd, self.port, self.ssl
             )
+            content = conn.RetrieveContent()
 
         except Exception as error:
             _LOGGER.error("ERROR: %s", error)
@@ -311,6 +316,13 @@ class esxiStats:
 
                     _LOGGER.debug("Getting stats for vm: %s", vm_name)
                     self.hass.data[DOMAIN_DATA]["vms"][vm_name] = get_vm_info(vm)
+
+            # try:
+            #    connect._stub.pool[0][0].sock.shutdown(2)
+            #    _LOGGER.debug("Logged out of %s", self.host)
+            # except Exception as e:
+            #    _LOGGER.debug("Error logging out: %s", e)
+            esx_disconnect(conn)
 
 
 async def check_files(hass):
