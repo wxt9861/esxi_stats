@@ -16,6 +16,8 @@ def get_content(host, user, pwd, port, ssl):
         current_session = si.content.sessionManager.currentSession.key
     else:
         si = SmartConnect(host=host, user=user, pwd=pwd, port=port)
+        _LOGGER.debug("Logged in to %s", host)
+        current_session = si.content.sessionManager.currentSession.key
 
     _LOGGER.debug("Session ID:  %s", current_session)
     atexit.register(Disconnect, si)
