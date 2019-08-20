@@ -154,10 +154,12 @@ async def async_setup_entry(hass, config_entry):
     hass.data[DOMAIN_DATA]["client"] = esxiStats(hass, config)
 
     try:
-        get_content(
+        connect = get_content(
             config[DOMAIN]["host"], config[DOMAIN]["username"],
             config[DOMAIN]["password"], config[DOMAIN]["port"],
             config[DOMAIN]["verify_ssl"],)
+
+        connect._stub.pool[0][0].sock.shutdown(2)
     except Exception as exception:  # pylint: disable=broad-except
         _LOGGER.error(exception)
         raise ConfigEntryNotReady
@@ -186,10 +188,11 @@ class esxiStats:
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
     async def update_data(self):
         try:
-            # get data from host
-            content = get_content(
+            # connect and get data from host
+            connect = get_content(
                 self.host, self.user, self.passwd, self.port, self.ssl
             )
+            content = connect.RetrieveContent()
 
         except Exception as error:
             _LOGGER.error("ERROR: %s", error)
@@ -241,6 +244,12 @@ class esxiStats:
 
                     _LOGGER.debug("Getting stats for vm: %s", vm_name)
                     self.hass.data[DOMAIN_DATA]["vms"][vm_name] = get_vm_info(vm)
+
+            try:
+                connect._stub.pool[0][0].sock.shutdown(2)
+                _LOGGER.debug("Logged out of %s", self.host)
+            except Exception as e:
+                _LOGGER.debug("Error logging out: %s", e)
 
 
 async def check_files(hass):

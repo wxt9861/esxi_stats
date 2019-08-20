@@ -104,10 +104,12 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
     async def _test_communication(self, host, port, verify_ssl, username, password):
         """Return true if the communication is ok."""
         try:
-            content = get_content(
+            connect = get_content(
                 host, username, password, port, verify_ssl
             )
-            _LOGGER.debug(content)
+            _LOGGER.debug(connect)
+
+            connect._stub.pool[0][0].sock.shutdown(2)
             return True
         except Exception as exception:  # pylint: disable=broad-except
             _LOGGER.error(exception)

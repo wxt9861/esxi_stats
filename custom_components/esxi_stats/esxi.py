@@ -12,12 +12,17 @@ def get_content(host, user, pwd, port, ssl):
     # connect depending on SSL_VERIFY setting
     if ssl == False:
         si = SmartConnectNoSSL(host=host, user=user, pwd=pwd, port=port)
+        _LOGGER.debug("Logged in to %s", host)
+        current_session = si.content.sessionManager.currentSession.key
     else:
         si = SmartConnect(host=host, user=user, pwd=pwd, port=port)
+        _LOGGER.debug("Logged in to %s", host)
+        current_session = si.content.sessionManager.currentSession.key
 
+    _LOGGER.debug("Session ID:  %s", current_session)
     atexit.register(Disconnect, si)
 
-    return si.RetrieveContent()
+    return si
 
 
 def get_host_info(host):
