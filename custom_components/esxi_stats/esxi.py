@@ -1,6 +1,7 @@
 import atexit
 import logging
 from pyVim.connect import SmartConnect, SmartConnectNoSSL, Disconnect
+from pyVim.task import WaitForTask
 from pyVmomi import vim, vmodl  # pylint: disable=no-name-in-module
 
 _LOGGER = logging.getLogger(__name__)
@@ -172,8 +173,9 @@ def listSnapshots(snapshots):
     return snapshot_data
 
 
-def vm_cmnd(target_vm, target_cmnd, conn):
-    content = conn
+async def vm_pwr(target_vm, target_cmnd, conn_details):
+    conn = await esx_connect(**conn_details)
+    content = conn.RetrieveContent()
     objView = content.viewManager.CreateContainerView(
         content.rootFolder, [vim.VirtualMachine], True
     )
@@ -181,11 +183,27 @@ def vm_cmnd(target_vm, target_cmnd, conn):
     objView.Destroy()
 
     try:
-        tasks = [  # pylint: disable=unused-variable
-            vm.PowerOn() for vm in data if vm.name in target_vm
-        ]
-
+        for vm in [vm for vm in data if vm.name in target_vm]:
+            _LOGGER.debug(
+                "Attempting to send '%s' command to vm '%s'", target_cmnd, vm.name
+            )
+            if target_cmnd == "on":
+                WaitForTask(vm.PowerOnVM_Task())
+            elif target_cmnd == "off":
+                WaitForTask(vm.PowerOffVM_Task())
+            elif target_cmnd == "suspend":
+                WaitForTask(vm.Suspend())
+            elif target_cmnd == "reset":
+                WaitForTask(vm.Reset())
+            elif target_cmnd == "reboot":
+                WaitForTask(vm.RebootGuest())
+            elif target_cmnd == "shutdown":
+                WaitForTask(vm.ShutdownGuest())
     except vmodl.MethodFault as e:
         _LOGGER.info(e.msg)
     except Exception as e:
         _LOGGER.info(str(e))
+
+    esx_disconnect(conn)
+
+    return True

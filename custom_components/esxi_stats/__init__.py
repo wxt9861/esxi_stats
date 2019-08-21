@@ -11,7 +11,7 @@ from .esxi import (
     get_host_info,
     get_datastore_info,
     get_vm_info,
-    vm_cmnd,
+    vm_pwr,
 )
 from pyVmomi import vim  # pylint: disable=no-name-in-module
 import voluptuous as vol
@@ -30,7 +30,7 @@ from homeassistant.const import (
 from homeassistant.helpers import discovery
 from homeassistant.util import Throttle
 from .const import (
-    AVAILABLE_COMMANDS_VM,
+    AVAILABLE_CMND_VM_POWER,
     CONF_NAME,
     DEFAULT_NAME,
     DEFAULT_PORT,
@@ -101,13 +101,14 @@ async def async_setup(hass, config):
     hass.data[DOMAIN_DATA]["client"] = esxiStats(hass, config)
 
     try:
-        conn = await esx_connect(
-            config[DOMAIN]["host"],
-            config[DOMAIN]["username"],
-            config[DOMAIN]["password"],
-            config[DOMAIN]["port"],
-            config[DOMAIN]["verify_ssl"],
-        )
+        conn_details = {
+            "host": config[DOMAIN]["host"],
+            "user": config[DOMAIN]["username"],
+            "pwd": config[DOMAIN]["password"],
+            "port": config[DOMAIN]["port"],
+            "ssl": config[DOMAIN]["verify_ssl"],
+        }
+        conn = await esx_connect(**conn_details)
 
         # # get license type
         lic = check_license(conn.RetrieveContent().licenseManager)
@@ -136,19 +137,20 @@ async def async_setup(hass, config):
 
     # if lisense allows API write, register services
     if lic:
-        def vm_command(call):
+
+        async def vm_power(call):
             vm = call.data["vm"]
             cmnd = call.data["command"]
 
-            if cmnd in AVAILABLE_COMMANDS_VM:
+            if cmnd in AVAILABLE_CMND_VM_POWER:
                 try:
-                    vm_cmnd(vm, cmnd, conn)
+                    await vm_pwr(vm, cmnd, conn_details)
                 except Exception as e:
                     _LOGGER.error(str(e))
             else:
-                _LOGGER.error("%s is not a supported command", cmnd)
+                _LOGGER.error("vm_power: '%s' is not a supported command", cmnd)
 
-        hass.services.async_register(DOMAIN, "vm_command", vm_command)
+        hass.services.async_register(DOMAIN, "vm_power", vm_power)
     else:
         _LOGGER.info(
             "Service calls are disabled - %s appears to have a free ESXi license",
@@ -200,13 +202,14 @@ async def async_setup_entry(hass, config_entry):
     hass.data[DOMAIN_DATA]["client"] = esxiStats(hass, config)
 
     try:
-        conn = await esx_connect(
-            config[DOMAIN]["host"],
-            config[DOMAIN]["username"],
-            config[DOMAIN]["password"],
-            config[DOMAIN]["port"],
-            config[DOMAIN]["verify_ssl"],
-        )
+        conn_details = {
+            "host": config[DOMAIN]["host"],
+            "user": config[DOMAIN]["username"],
+            "pwd": config[DOMAIN]["password"],
+            "port": config[DOMAIN]["port"],
+            "ssl": config[DOMAIN]["verify_ssl"],
+        }
+        conn = await esx_connect(**conn_details)
 
         # get license type
         lic = check_license(conn.RetrieveContent().licenseManager)
@@ -224,19 +227,20 @@ async def async_setup_entry(hass, config_entry):
 
     # if lisense allows API write, register services
     if lic:
-        def vm_command(call):
+
+        async def vm_power(call):
             vm = call.data["vm"]
             cmnd = call.data["command"]
 
-            if cmnd in AVAILABLE_COMMANDS_VM:
+            if cmnd in AVAILABLE_CMND_VM_POWER:
                 try:
-                    vm_cmnd(vm, cmnd, conn)
+                    await vm_pwr(vm, cmnd, conn_details)
                 except Exception as e:
                     _LOGGER.error(str(e))
             else:
-                _LOGGER.error("%s is not a supported command", cmnd)
+                _LOGGER.error("vm_power: '%s' is not a supported command", cmnd)
 
-        hass.services.async_register(DOMAIN, "vm_command", vm_command)
+        hass.services.async_register(DOMAIN, "vm_power", vm_power)
     else:
         _LOGGER.info(
             "Service calls are disabled - %s appears to have a free ESXi license",
@@ -317,11 +321,6 @@ class esxiStats:
                     _LOGGER.debug("Getting stats for vm: %s", vm_name)
                     self.hass.data[DOMAIN_DATA]["vms"][vm_name] = get_vm_info(vm)
 
-            # try:
-            #    connect._stub.pool[0][0].sock.shutdown(2)
-            #    _LOGGER.debug("Logged out of %s", self.host)
-            # except Exception as e:
-            #    _LOGGER.debug("Error logging out: %s", e)
             esx_disconnect(conn)
 
 
