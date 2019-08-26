@@ -15,16 +15,18 @@ async def async_setup_platform(
     for condition in hass.data[DOMAIN_DATA]["monitored_conditions"]:
         async_add_entities([esxiSensor(hass, discovery_info, condition)], True)
 
+
 async def async_setup_entry(hass, config_entry, async_add_devices):
     """Setup sensor platform."""
     config = config_entry.data
     for condition in hass.data[DOMAIN_DATA]["monitored_conditions"]:
         async_add_devices([esxiSensor(hass, config, condition)], True)
 
+
 class esxiSensor(Entity):
     """esxi_stats Sensor class."""
 
-    def __init__(self, hass, config, condition, config_entry = None):
+    def __init__(self, hass, config, condition, config_entry=None):
         self.hass = hass
         self.attr = {}
         self.config_entry = config_entry
@@ -61,7 +63,8 @@ class esxiSensor(Entity):
     def unique_id(self):
         """Return a unique ID to use for this binary_sensor."""
         return "{}_52446d23-5e54-4525-8018-56da195d276f_{}".format(
-            self.config["host"].replace(".", "_"), self._condition)
+            self.config["host"].replace(".", "_"), self._condition
+        )
 
     @property
     def should_poll(self):

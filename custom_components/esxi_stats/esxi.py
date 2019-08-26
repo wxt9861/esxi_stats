@@ -1,17 +1,19 @@
-import atexit
 import logging
-from pyVim.connect import SmartConnect, SmartConnectNoSSL, Disconnect
-from pyVim.task import WaitForTask
+import asyncio
+from pyVim.connect import SmartConnect, SmartConnectNoSSL
 from pyVmomi import vim, vmodl  # pylint: disable=no-name-in-module
+
+from .const import SUPPORTED_PRODUCTS
 
 _LOGGER = logging.getLogger(__name__)
 
 
 async def esx_connect(host, user, pwd, port, ssl):
+    """establish connection with host/vcenter"""
     si = None
 
     # connect depending on SSL_VERIFY setting
-    if ssl == False:
+    if ssl is False:
         si = SmartConnectNoSSL(host=host, user=user, pwd=pwd, port=port)
         current_session = si.content.sessionManager.currentSession.key
         _LOGGER.debug("Logged in - session %s", current_session)
@@ -24,6 +26,7 @@ async def esx_connect(host, user, pwd, port, ssl):
 
 
 def esx_disconnect(conn):
+    """kill connection from host/vcenter"""
     current_session = conn.content.sessionManager.currentSession.key
     try:
         conn._stub.pool[0][0].sock.shutdown(2)
@@ -33,13 +36,20 @@ def esx_disconnect(conn):
 
 
 def check_license(lic):
-    for feature in lic.licenses[0].properties:
-        if feature.key == "feature":
-            if feature.value.key == "vimapi":
-                return True
+    """retreieve license from connected system"""
+    _LOGGER.debug("Checking license type")
+    for lic in lic.licenses:
+        if lic.properties[0].value not in SUPPORTED_PRODUCTS:
+            continue
+        else:
+            for feature in lic.properties:
+                if feature.key == "feature":
+                    if feature.value.key == "vimapi":
+                        return True
 
 
 def get_host_info(host):
+    """get host information"""
     host_summary = host.summary
     host_name = host_summary.config.name.replace(" ", "_").lower()
     host_version = host_summary.config.product.version
@@ -67,6 +77,7 @@ def get_host_info(host):
 
 
 def get_datastore_info(ds):
+    """get datastore information"""
     ds_summary = ds.summary
     ds_name = ds_summary.name.replace(" ", "_").lower()
     ds_capacity = round(ds_summary.capacity / 1073741824, 2)
@@ -88,6 +99,7 @@ def get_datastore_info(ds):
 
 
 def get_vm_info(vm):
+    """get VM information"""
     vm_sum = vm.summary
     vm_run = vm.runtime
     vm_snap = vm.snapshot
@@ -164,6 +176,7 @@ def get_vm_info(vm):
 
 
 def listSnapshots(snapshots):
+    """get VM snapshot information"""
     snapshot_data = []
 
     for snapshot in snapshots:
@@ -174,6 +187,7 @@ def listSnapshots(snapshots):
 
 
 async def vm_pwr(target_vm, target_cmnd, conn_details):
+    """VM power commands"""
     conn = await esx_connect(**conn_details)
     content = conn.RetrieveContent()
     objView = content.viewManager.CreateContainerView(
@@ -184,26 +198,60 @@ async def vm_pwr(target_vm, target_cmnd, conn_details):
 
     try:
         for vm in [vm for vm in data if vm.name in target_vm]:
-            _LOGGER.debug(
-                "Attempting to send '%s' command to vm '%s'", target_cmnd, vm.name
-            )
+            _LOGGER.info("Sending '%s' command to vm '%s'", target_cmnd, vm.name)
+
+            # generate task based on requested command
             if target_cmnd == "on":
-                WaitForTask(vm.PowerOnVM_Task())
+                task = vm.PowerOnVM_Task()
             elif target_cmnd == "off":
-                WaitForTask(vm.PowerOffVM_Task())
+                task = vm.PowerOffVM_Task()
             elif target_cmnd == "suspend":
-                WaitForTask(vm.Suspend())
+                task = vm.SuspendVM_Task()
             elif target_cmnd == "reset":
-                WaitForTask(vm.Reset())
+                task = vm.ResetVM_Task()
             elif target_cmnd == "reboot":
-                WaitForTask(vm.RebootGuest())
+                task = vm.RebootGuest()
             elif target_cmnd == "shutdown":
-                WaitForTask(vm.ShutdownGuest())
+                task = vm.ShutdownGuest()
+
+            # while task is running, check status
+            # some tasks are fire and forget, no status will be provided
+            if task:
+                await taskStatus(task)
+            else:
+                _LOGGER.info("'%s' task does not provide feedback", target_cmnd)
     except vmodl.MethodFault as e:
         _LOGGER.info(e.msg)
     except Exception as e:
         _LOGGER.info(str(e))
-
-    esx_disconnect(conn)
+    finally:
+        esx_disconnect(conn)
 
     return True
+
+
+async def taskStatus(task):
+    """check status of running command"""
+    while task.info.state not in [
+        vim.TaskInfo.State.success,
+        vim.TaskInfo.State.error,
+    ]:
+        if task.info.progress is not None:
+            _LOGGER.debug(
+                "Task %s progress %s",
+                task.info.eventChainId,
+                task.info.progress,
+            )
+
+        await asyncio.sleep(2)
+
+    # output task status once complete
+    if task.info.state == "success":
+        _LOGGER.info(
+            "Sending command to '%s' complete", task.info.entityName
+        )
+    if task.info.state == "error":
+        _LOGGER.info(
+            "Sending command to '%s' failed", task.info.entityName
+        )
+        _LOGGER.info(task.info.error.msg)

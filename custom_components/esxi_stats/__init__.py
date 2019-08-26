@@ -2,7 +2,7 @@
 
 import logging
 import os
-from datetime import timedelta, datetime, date
+from datetime import timedelta
 
 from .esxi import (
     esx_connect,
@@ -31,6 +31,7 @@ from homeassistant.helpers import discovery
 from homeassistant.util import Throttle
 from .const import (
     AVAILABLE_CMND_VM_POWER,
+    COMMAND,
     CONF_NAME,
     DEFAULT_NAME,
     DEFAULT_PORT,
@@ -41,10 +42,15 @@ from .const import (
     REQUIRED_FILES,
     STARTUP,
     VERSION,
+    VM,
 )
 
 _LOGGER = logging.getLogger(__name__)
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=60)
+
+CMND_VM_PWR_SCHEMA = vol.Schema(
+    {vol.Required(VM): cv.string, vol.Required(COMMAND): cv.string}
+)
 
 MONITORED_CONDITIONS = {
     "hosts": ["ESXi Host", "", ""],
@@ -112,10 +118,10 @@ async def async_setup(hass, config):
 
         # # get license type
         lic = check_license(conn.RetrieveContent().licenseManager)
-
-        esx_disconnect(conn)
     except Exception as exception:  # pylint: disable=broad-except
         _LOGGER.error(exception)
+    finally:
+        esx_disconnect(conn)
 
     # load platforms
     for platform in PLATFORMS:
@@ -144,16 +150,19 @@ async def async_setup(hass, config):
 
             if cmnd in AVAILABLE_CMND_VM_POWER:
                 try:
-                    await vm_pwr(vm, cmnd, conn_details)
+                    # await vm_pwr(vm, cmnd, conn_details)
+                    hass.async_create_task(vm_pwr(vm, cmnd, conn_details))
                 except Exception as e:
                     _LOGGER.error(str(e))
             else:
                 _LOGGER.error("vm_power: '%s' is not a supported command", cmnd)
 
-        hass.services.async_register(DOMAIN, "vm_power", vm_power)
+        hass.services.async_register(
+            DOMAIN, "vm_power", vm_power, schema=CMND_VM_PWR_SCHEMA
+        )
     else:
         _LOGGER.info(
-            "Service calls are disabled - %s appears to have a free ESXi license",
+            "Service calls are disabled - %s doesn't have a supported license",
             config[DOMAIN]["host"],
         )
 
@@ -213,11 +222,11 @@ async def async_setup_entry(hass, config_entry):
 
         # get license type
         lic = check_license(conn.RetrieveContent().licenseManager)
-
-        esx_disconnect(conn)
     except Exception as exception:  # pylint: disable=broad-except
         _LOGGER.error(exception)
         raise ConfigEntryNotReady
+    finally:
+        esx_disconnect(conn)
 
     # load platforms
     for platform in PLATFORMS:
@@ -240,10 +249,12 @@ async def async_setup_entry(hass, config_entry):
             else:
                 _LOGGER.error("vm_power: '%s' is not a supported command", cmnd)
 
-        hass.services.async_register(DOMAIN, "vm_power", vm_power)
+        hass.services.async_register(
+            DOMAIN, "vm_power", vm_power, schema=CMND_VM_PWR_SCHEMA
+        )
     else:
         _LOGGER.info(
-            "Service calls are disabled - %s appears to have a free ESXi license",
+            "Service calls are disabled - %s doesn't have a supported license",
             config[DOMAIN]["host"],
         )
 
