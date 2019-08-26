@@ -1,5 +1,10 @@
 # ESXi Stats
 
+- [Installation](#installation)
+- [Configuration](#configuration-options)
+- [Service Calls](#service-calls)
+- [Presenting Data in Home Assistant](#presenting-data-in-home-assistant)
+
 ESXi component for Home Assistant
 This component will gather stats from an ESXi server or vCenter. Information gathered can be Host info, Datastore info and VM info. Information is gathered every 60 seconds.
 A sensor is created for each monitored condition. If you're monitoring hosts, datastores, and vms, 3 sensors are createad. Stats are stored as sensor attributes and can be retreieved using various tools available for Home Assistant.
@@ -37,6 +42,7 @@ The component pulls the following information:
   - Storage used in GB
   - VM Tools status (tools running, not running, not install, etc)
   - VM guest OS
+  - number of snapshots
 
 Sensor Example
 ![Host Sensor Example](examples/host_sensor_example.png)
@@ -111,6 +117,25 @@ logger:
   logs:
     custom_components.esxi_stats: debug
 ```
+
+## Service Calls
+
+Service calls are only available with a full ESXi license. On start up the component will scan available licenses and register services only if a compatible license is found.
+
+Right now only VM Power commands are supported (use esxi_stats.vm_power). You can on,off,reboot,reset,shutdown,suspend a VM.
+To issue a command:
+
+1. Select esxi_stats.vm_power from the Development Tools > Services > Service dropdown
+2. Enter required data - vm and command
+
+```json
+{ "vm": "vm_name", "command": "suspend" }
+```
+
+Some commands provide status (ex. suspending a VM or resuming a VM), while other commands are fire and forget (ex. reboot/shutdown). Commands that provide status will output info message to logger when they are complete.
+
+**When executing commands, understand what each command does**
+(ex. to gracefully shutdown, send a **shutdown** command not an **off** command)
 
 ## Presenting Data in Home Assistant
 
