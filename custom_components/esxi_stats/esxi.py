@@ -1,5 +1,4 @@
 import logging
-import asyncio
 from pyVim.connect import SmartConnect, SmartConnectNoSSL
 from pyVmomi import vim, vmodl  # pylint: disable=no-name-in-module
 
@@ -39,13 +38,29 @@ def check_license(lic):
     """retreieve license from connected system"""
     _LOGGER.debug("Checking license type")
     for lic in lic.licenses:
-        if lic.properties[0].value not in SUPPORTED_PRODUCTS:
-            continue
-        else:
-            for feature in lic.properties:
-                if feature.key == "feature":
-                    if feature.value.key == "vimapi":
-                        return True
+        for key in lic.properties:
+            if key.key != "ProductName":
+                continue
+            elif key.key == "ProductName" and key.value not in SUPPORTED_PRODUCTS:
+                continue
+            elif key.key == "ProductName" and key.value == SUPPORTED_PRODUCTS[1]:
+                _LOGGER.debug("Found %s license", key.value)
+                return True
+            elif key.key == "ProductName" and key.value == SUPPORTED_PRODUCTS[0]:
+                _LOGGER.debug("Found %s license", key.value)
+                for feature in lic.properties:
+                    if feature.key == "feature":
+                        if feature.value.key == "vimapi":
+                            _LOGGER.debug("vSphere API feature enabled")
+                            return True
+
+        # if lic.properties[0].value not in SUPPORTED_PRODUCTS:
+        #     continue
+        # else:
+        #     for feature in lic.properties:
+        #         if feature.key == "feature":
+        #             if feature.value.key == "vimapi":
+        #                 return True
 
 
 def get_host_info(host):
@@ -220,6 +235,10 @@ async def vm_pwr(target_vm, target_cmnd, conn_details):
                 await taskStatus(task)
             else:
                 _LOGGER.info("'%s' task does not provide feedback", target_cmnd)
+
+            break
+        else:
+            _LOGGER.info("VM %s not found. Make sure the name is correct", target_vm)
     except vmodl.MethodFault as e:
         _LOGGER.info(e.msg)
     except Exception as e:
@@ -232,26 +251,20 @@ async def vm_pwr(target_vm, target_cmnd, conn_details):
 
 async def taskStatus(task):
     """check status of running command"""
-    while task.info.state not in [
-        vim.TaskInfo.State.success,
-        vim.TaskInfo.State.error,
-    ]:
+    from asyncio import sleep
+
+    state = vim.TaskInfo.State
+    while task.info.state not in [state.success, state.error]:
         if task.info.progress is not None:
             _LOGGER.debug(
-                "Task %s progress %s",
-                task.info.eventChainId,
-                task.info.progress,
+                "Task %s progress %s", task.info.eventChainId, task.info.progress
             )
 
-        await asyncio.sleep(2)
+        await sleep(2)
 
     # output task status once complete
     if task.info.state == "success":
-        _LOGGER.info(
-            "Sending command to '%s' complete", task.info.entityName
-        )
+        _LOGGER.info("Sending command to '%s' complete", task.info.entityName)
     if task.info.state == "error":
-        _LOGGER.info(
-            "Sending command to '%s' failed", task.info.entityName
-        )
+        _LOGGER.info("Sending command to '%s' failed", task.info.entityName)
         _LOGGER.info(task.info.error.msg)

@@ -28,7 +28,7 @@ CONF_NAME = "name"
 DEFAULT_NAME = "ESXi Stats"
 DEFAULT_PORT = 443
 
-SUPPORTED_PRODUCTS = ["VMware ESX Server"]
+SUPPORTED_PRODUCTS = ["VMware ESX Server", "VMware VirtualCenter Server"]
 AVAILABLE_CMND_VM_POWER = ["on", "off", "reboot", "reset", "shutdown", "suspend"]
 VM = "vm"
 COMMAND = "command"
