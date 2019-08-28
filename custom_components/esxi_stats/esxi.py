@@ -54,14 +54,6 @@ def check_license(lic):
                             _LOGGER.debug("vSphere API feature enabled")
                             return True
 
-        # if lic.properties[0].value not in SUPPORTED_PRODUCTS:
-        #     continue
-        # else:
-        #     for feature in lic.properties:
-        #         if feature.key == "feature":
-        #             if feature.value.key == "vimapi":
-        #                 return True
-
 
 def get_host_info(host):
     """get host information"""
