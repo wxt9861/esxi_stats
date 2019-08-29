@@ -1,31 +1,62 @@
-import atexit
 import logging
-from pyVim.connect import SmartConnect, SmartConnectNoSSL, Disconnect
-from pyVmomi import vim  # pylint: disable=no-name-in-module
+from pyVim.connect import SmartConnect, SmartConnectNoSSL
+from pyVmomi import vim, vmodl  # pylint: disable=no-name-in-module
+
+from .const import SUPPORTED_PRODUCTS
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def get_content(host, user, pwd, port, ssl):
+async def esx_connect(host, user, pwd, port, ssl):
+    """establish connection with host/vcenter"""
     si = None
 
     # connect depending on SSL_VERIFY setting
-    if ssl == False:
+    if ssl is False:
         si = SmartConnectNoSSL(host=host, user=user, pwd=pwd, port=port)
-        _LOGGER.debug("Logged in to %s", host)
         current_session = si.content.sessionManager.currentSession.key
+        _LOGGER.debug("Logged in - session %s", current_session)
     else:
         si = SmartConnect(host=host, user=user, pwd=pwd, port=port)
-        _LOGGER.debug("Logged in to %s", host)
         current_session = si.content.sessionManager.currentSession.key
-
-    _LOGGER.debug("Session ID:  %s", current_session)
-    atexit.register(Disconnect, si)
+        _LOGGER.debug("Logged in - session %s", current_session)
 
     return si
 
 
+def esx_disconnect(conn):
+    """kill connection from host/vcenter"""
+    current_session = conn.content.sessionManager.currentSession.key
+    try:
+        conn._stub.pool[0][0].sock.shutdown(2)
+        _LOGGER.debug("Logged out - session %s", current_session)
+    except Exception as e:
+        _LOGGER.debug(e)
+
+
+def check_license(lic):
+    """retreieve license from connected system"""
+    _LOGGER.debug("Checking license type")
+    for lic in lic.licenses:
+        for key in lic.properties:
+            if key.key != "ProductName":
+                continue
+            elif key.key == "ProductName" and key.value not in SUPPORTED_PRODUCTS:
+                continue
+            elif key.key == "ProductName" and key.value == SUPPORTED_PRODUCTS[1]:
+                _LOGGER.debug("Found %s license", key.value)
+                return True
+            elif key.key == "ProductName" and key.value == SUPPORTED_PRODUCTS[0]:
+                _LOGGER.debug("Found %s license", key.value)
+                for feature in lic.properties:
+                    if feature.key == "feature":
+                        if feature.value.key == "vimapi":
+                            _LOGGER.debug("vSphere API feature enabled")
+                            return True
+
+
 def get_host_info(host):
+    """get host information"""
     host_summary = host.summary
     host_name = host_summary.config.name.replace(" ", "_").lower()
     host_version = host_summary.config.product.version
@@ -53,6 +84,7 @@ def get_host_info(host):
 
 
 def get_datastore_info(ds):
+    """get datastore information"""
     ds_summary = ds.summary
     ds_name = ds_summary.name.replace(" ", "_").lower()
     ds_capacity = round(ds_summary.capacity / 1073741824, 2)
@@ -74,11 +106,20 @@ def get_datastore_info(ds):
 
 
 def get_vm_info(vm):
+    """get VM information"""
     vm_sum = vm.summary
     vm_run = vm.runtime
+    vm_snap = vm.snapshot
+
     vm_name = vm_sum.config.name.replace(" ", "_").lower()
     vm_used_space = round(vm_sum.storage.committed / 1073741824, 2)
     vm_tools_status = vm_sum.guest.toolsStatus
+
+    # if snapshots present, get number of snapshots
+    if vm_snap is not None:
+        vm_snapshots = len(listSnapshots(vm_snap.rootSnapshotList))
+    else:
+        vm_snapshots = 0
 
     # set vm_state based on power state
     if vm_sum.runtime.powerState == "poweredOn":
@@ -133,8 +174,89 @@ def get_vm_info(vm):
         "used_space_gb": vm_used_space,
         "tools_status": vm_tools_status,
         "guest_os": vm_guest_os,
+        "snapshots": vm_snapshots,
     }
 
     _LOGGER.debug(vm_data)
 
     return vm_data
+
+
+def listSnapshots(snapshots):
+    """get VM snapshot information"""
+    snapshot_data = []
+
+    for snapshot in snapshots:
+        snapshot_data.append(snapshot.id)
+        snapshot_data = snapshot_data + listSnapshots(snapshot.childSnapshotList)
+
+    return snapshot_data
+
+
+async def vm_pwr(target_vm, target_cmnd, conn_details):
+    """VM power commands"""
+    conn = await esx_connect(**conn_details)
+    content = conn.RetrieveContent()
+    objView = content.viewManager.CreateContainerView(
+        content.rootFolder, [vim.VirtualMachine], True
+    )
+    data = objView.view
+    objView.Destroy()
+
+    try:
+        for vm in [vm for vm in data if vm.name in target_vm]:
+            _LOGGER.info("Sending '%s' command to vm '%s'", target_cmnd, vm.name)
+
+            # generate task based on requested command
+            if target_cmnd == "on":
+                task = vm.PowerOnVM_Task()
+            elif target_cmnd == "off":
+                task = vm.PowerOffVM_Task()
+            elif target_cmnd == "suspend":
+                task = vm.SuspendVM_Task()
+            elif target_cmnd == "reset":
+                task = vm.ResetVM_Task()
+            elif target_cmnd == "reboot":
+                task = vm.RebootGuest()
+            elif target_cmnd == "shutdown":
+                task = vm.ShutdownGuest()
+
+            # while task is running, check status
+            # some tasks are fire and forget, no status will be provided
+            if task:
+                await taskStatus(task)
+            else:
+                _LOGGER.info("'%s' task does not provide feedback", target_cmnd)
+
+            break
+        else:
+            _LOGGER.info("VM %s not found. Make sure the name is correct", target_vm)
+    except vmodl.MethodFault as e:
+        _LOGGER.info(e.msg)
+    except Exception as e:
+        _LOGGER.info(str(e))
+    finally:
+        esx_disconnect(conn)
+
+    return True
+
+
+async def taskStatus(task):
+    """check status of running command"""
+    from asyncio import sleep
+
+    state = vim.TaskInfo.State
+    while task.info.state not in [state.success, state.error]:
+        if task.info.progress is not None:
+            _LOGGER.debug(
+                "Task %s progress %s", task.info.eventChainId, task.info.progress
+            )
+
+        await sleep(2)
+
+    # output task status once complete
+    if task.info.state == "success":
+        _LOGGER.info("Sending command to '%s' complete", task.info.entityName)
+    if task.info.state == "error":
+        _LOGGER.info("Sending command to '%s' failed", task.info.entityName)
+        _LOGGER.info(task.info.error.msg)

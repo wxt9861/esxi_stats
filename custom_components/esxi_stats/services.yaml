@@ -1,0 +1,9 @@
+vm_power:
+  description: Sends Virtual Machine power commands to ESXi host
+  fields:
+    vm:
+      description: Name of the Virtual Machine
+      example: 'vm_name'
+    command:
+      description: Power command to run against Virtual Machine
+      example: 'on,off,reboot,reset,shutdown,suspend'

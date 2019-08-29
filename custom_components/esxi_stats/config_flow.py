@@ -8,7 +8,7 @@ from homeassistant import config_entries
 from homeassistant.helpers import aiohttp_client
 
 from .const import DOMAIN, DEFAULT_PORT
-from .esxi import get_content
+from .esxi import esx_connect, esx_disconnect
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -104,12 +104,12 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
     async def _test_communication(self, host, port, verify_ssl, username, password):
         """Return true if the communication is ok."""
         try:
-            connect = get_content(
+            conn = await esx_connect(
                 host, username, password, port, verify_ssl
             )
-            _LOGGER.debug(connect)
+            _LOGGER.debug(conn)
 
-            connect._stub.pool[0][0].sock.shutdown(2)
+            esx_disconnect(conn)
             return True
         except Exception as exception:  # pylint: disable=broad-except
             _LOGGER.error(exception)
