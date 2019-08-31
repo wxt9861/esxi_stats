@@ -206,9 +206,9 @@ views:
           icon:
             - color: >
                 [[[
-                  if ( states['sensor.esxi_stats_vms'].attributes.plex.status == "green")
+                  if ( states['sensor.esxi_stats_vms'].attributes.<VM_NAME_HERE>.status == "green")
                     return "green";
-                  if ( states['sensor.esxi_stats_vms'].attributes.plex.status == "warning" )
+                  if ( states['sensor.esxi_stats_vms'].attributes.<VM_NAME_HERE>.status == "warning" )
                     return "yellow";
                   return "red";
                 ]]]
