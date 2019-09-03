@@ -10,7 +10,7 @@ REQUIRED_FILES = [
     "config_flow.py",
     ".translations/en.json",
 ]
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 ISSUE_URL = "https://github.com/wxt9861/esxi_stats/issues"
 
 STARTUP = """

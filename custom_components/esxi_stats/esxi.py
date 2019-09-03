@@ -193,7 +193,7 @@ def listSnapshots(snapshots):
     return snapshot_data
 
 
-async def vm_pwr(target_vm, target_cmnd, conn_details):
+async def vm_pwr(hass, target_vm, target_cmnd, conn_details):
     """VM power commands"""
     conn = await esx_connect(**conn_details)
     content = conn.RetrieveContent()
@@ -224,7 +224,8 @@ async def vm_pwr(target_vm, target_cmnd, conn_details):
             # while task is running, check status
             # some tasks are fire and forget, no status will be provided
             if task:
-                await taskStatus(task)
+                message = "power " + target_cmnd + " on " + vm.name
+                await taskStatus(hass, task, message)
             else:
                 _LOGGER.info("'%s' task does not provide feedback", target_cmnd)
 
@@ -241,9 +242,84 @@ async def vm_pwr(target_vm, target_cmnd, conn_details):
     return True
 
 
-async def taskStatus(task):
+async def vm_snap_take(hass, target_vm, snap_name, desc, memory, quiesce, conn_details):
+    """Take Snapshot commands"""
+    conn = await esx_connect(**conn_details)
+    content = conn.RetrieveContent()
+    objView = content.viewManager.CreateContainerView(
+        content.rootFolder, [vim.VirtualMachine], True
+    )
+    data = objView.view
+    objView.Destroy()
+
+    try:
+        for vm in [vm for vm in data if vm.name in target_vm]:
+            _LOGGER.info("Sending create snapshot command to vm '%s'", vm.name)
+            task = vm.CreateSnapshot_Task(snap_name, desc, memory, quiesce)
+
+            # while task is running, check status
+            if task:
+                message = "create snapshot on " + vm.name
+                await taskStatus(hass, task, message)
+            else:
+                _LOGGER.info("Task does not provide feedback")
+
+            break
+        else:
+            _LOGGER.info("VM %s not found. Make sure the name is correct", target_vm)
+    except vmodl.MethodFault as e:
+        _LOGGER.info(e.msg)
+    except Exception as e:
+        _LOGGER.info(str(e))
+    finally:
+        esx_disconnect(conn)
+
+    return True
+
+
+async def vm_snap_remove(hass, target_vm, remove_all, conn_details):
+    """Remove Snapshot commands"""
+    conn = await esx_connect(**conn_details)
+    content = conn.RetrieveContent()
+    objView = content.viewManager.CreateContainerView(
+        content.rootFolder, [vim.VirtualMachine], True
+    )
+    data = objView.view
+    objView.Destroy()
+
+    try:
+        for vm in [vm for vm in data if vm.name in target_vm]:
+            _LOGGER.info("Sending create snapshot command to vm '%s'", vm.name)
+
+            if remove_all is True:
+                task = vm.RemoveAllSnapshots_Task()
+            else:
+                _LOGGER.debug("Looking for snapshot")
+
+            # while task is running, check status
+            if task:
+                message = "remove snapshot on " + vm.name
+                await taskStatus(hass, task, message)
+            else:
+                _LOGGER.info("Task does not provide feedback")
+
+            break
+        else:
+            _LOGGER.info("VM %s not found. Make sure the name is correct", target_vm)
+    except vmodl.MethodFault as e:
+        _LOGGER.info(e.msg)
+    except Exception as e:
+        _LOGGER.info(str(e))
+    finally:
+        esx_disconnect(conn)
+
+    return True
+
+
+async def taskStatus(hass, task, command):
     """check status of running command"""
     from asyncio import sleep
+    from homeassistant.components import persistent_notification
 
     state = vim.TaskInfo.State
     while task.info.state not in [state.success, state.error]:
@@ -257,6 +333,13 @@ async def taskStatus(task):
     # output task status once complete
     if task.info.state == "success":
         _LOGGER.info("Sending command to '%s' complete", task.info.entityName)
+
+        message = "Complete - " + command
+        persistent_notification.async_create(hass, message, "ESXi Stats")
     if task.info.state == "error":
         _LOGGER.info("Sending command to '%s' failed", task.info.entityName)
         _LOGGER.info(task.info.error.msg)
+
+        message = "Failed - " + command + "\n\n"
+        message += task.info.error.msg
+        persistent_notification.async_create(hass, message, "ESXi Stats")

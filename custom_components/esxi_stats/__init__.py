@@ -2,7 +2,7 @@
 
 import logging
 import os
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from .esxi import (
     esx_connect,
@@ -12,6 +12,8 @@ from .esxi import (
     get_datastore_info,
     get_vm_info,
     vm_pwr,
+    vm_snap_take,
+    vm_snap_remove,
 )
 from pyVmomi import vim  # pylint: disable=no-name-in-module
 import voluptuous as vol
@@ -48,9 +50,10 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=60)
 
-CMND_VM_PWR_SCHEMA = vol.Schema(
+VM_PWR_SCHEMA = vol.Schema(
     {vol.Required(VM): cv.string, vol.Required(COMMAND): cv.string}
 )
+SNAP_CREATE_SCHEMA = vol.Schema({vol.Required(VM): cv.string}, extra=vol.ALLOW_EXTRA)
 
 MONITORED_CONDITIONS = {
     "hosts": ["ESXi Host", "", ""],
@@ -143,23 +146,7 @@ async def async_setup(hass, config):
 
     # if lisense allows API write, register services
     if lic:
-
-        async def vm_power(call):
-            vm = call.data["vm"]
-            cmnd = call.data["command"]
-
-            if cmnd in AVAILABLE_CMND_VM_POWER:
-                try:
-                    # await vm_pwr(vm, cmnd, conn_details)
-                    hass.async_create_task(vm_pwr(vm, cmnd, conn_details))
-                except Exception as e:
-                    _LOGGER.error(str(e))
-            else:
-                _LOGGER.error("vm_power: '%s' is not a supported command", cmnd)
-
-        hass.services.async_register(
-            DOMAIN, "vm_power", vm_power, schema=CMND_VM_PWR_SCHEMA
-        )
+        await add_services(hass, conn_details)
     else:
         _LOGGER.info(
             "Service calls are disabled - %s doesn't have a supported license",
@@ -236,22 +223,7 @@ async def async_setup_entry(hass, config_entry):
 
     # if lisense allows API write, register services
     if lic:
-
-        async def vm_power(call):
-            vm = call.data["vm"]
-            cmnd = call.data["command"]
-
-            if cmnd in AVAILABLE_CMND_VM_POWER:
-                try:
-                    await vm_pwr(vm, cmnd, conn_details)
-                except Exception as e:
-                    _LOGGER.error(str(e))
-            else:
-                _LOGGER.error("vm_power: '%s' is not a supported command", cmnd)
-
-        hass.services.async_register(
-            DOMAIN, "vm_power", vm_power, schema=CMND_VM_PWR_SCHEMA
-        )
+        await add_services(hass, conn_details)
     else:
         _LOGGER.info(
             "Service calls are disabled - %s doesn't have a supported license",
@@ -351,6 +323,68 @@ async def check_files(hass):
         returnvalue = True
 
     return returnvalue
+
+
+async def add_services(hass, conn_details):
+    # vm power service
+    async def vm_power(call):
+        vm = call.data["vm"]
+        cmnd = call.data["command"]
+
+        if cmnd in AVAILABLE_CMND_VM_POWER:
+            try:
+                hass.async_create_task(vm_pwr(hass, vm, cmnd, conn_details))
+                # await vm_pwr(vm, cmnd, conn_details)
+            except Exception as e:
+                _LOGGER.error(str(e))
+        else:
+            _LOGGER.error("vm_power: '%s' is not a supported command", cmnd)
+
+    # snapshot create service
+    async def snap_create(call):
+        vm = call.data["vm"]
+
+        if "name" in call.data:
+            name = call.data["name"]
+
+        if "description" in call.data:
+            desc = call.data["description"]
+        else:
+            now = datetime.now()
+            desc = "Taken from HASS on " + now.strftime("%x %X")
+
+        if "memory" in call.data:
+            memory = call.data["memory"]
+        else:
+            memory = False
+
+        if "quiesce" in call.data:
+            quiesce = call.data["quiesce"]
+        else:
+            quiesce = False
+
+        try:
+            hass.async_create_task(
+                vm_snap_take(hass, vm, name, desc, memory, quiesce, conn_details)
+            )
+        except Exception as e:
+            _LOGGER.error(str(e))
+
+    # snapshot remove service
+    async def snap_remove(call):
+        vm = call.data["vm"]
+        remove_all = call.data["all"]
+
+        try:
+            hass.async_create_task(vm_snap_remove(hass, vm, remove_all, conn_details))
+        except Exception as e:
+            _LOGGER.error(str(e))
+
+    hass.services.async_register(DOMAIN, "vm_power", vm_power, schema=VM_PWR_SCHEMA)
+    hass.services.async_register(
+        DOMAIN, "create_snapshot", snap_create, schema=SNAP_CREATE_SCHEMA
+    )
+    hass.services.async_register(DOMAIN, "remove_snapshot", snap_remove)
 
 
 async def async_remove_entry(hass, config_entry):
