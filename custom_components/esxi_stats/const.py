@@ -8,6 +8,7 @@ REQUIRED_FILES = [
     "manifest.json",
     "sensor.py",
     "config_flow.py",
+    "services.yaml",
     ".translations/en.json",
 ]
 VERSION = "0.4.0"

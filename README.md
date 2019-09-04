@@ -107,7 +107,7 @@ esxi_stats:
   password: <password>
 ```
 
-The below configuartion will get host stats, datastore stats, and vm stats.
+The below configuartion will get host, datastore, license, and vm stats.
 
 ```yaml
 esxi_stats:
@@ -118,6 +118,7 @@ esxi_stats:
     - hosts
     - vms
     - datastores
+    - licenses
 ```
 
 To enable debug

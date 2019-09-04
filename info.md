@@ -1,12 +1,12 @@
 {% if prerelease %}
 
-## NB!: This is a BETA version
+## This is a BETA version
 
 {% endif %}
 
-## **Breaking Change in v0.4 if configured via Integration UI**
+## **Breaking Change in 0.4 if configured via Integration UI**
 
-**Due to addition of licenses sensor, the platform will fail to load after the reboot. Remove the re-add the platform.**
+**Due to addition of licenses sensor, the platform will fail to load after the reboot. Simply remove and re-add the integration from the Integrations UI**
 
 # Configuration options
 
@@ -38,7 +38,7 @@ esxi_stats:
   password: <password>
 ```
 
-The below configuartion will get host stats, datastore stats, and vm stats.
+The below configuartion will get host, datastore, license, and vm stats.
 
 ```yaml
 esxi_stats:
@@ -49,6 +49,7 @@ esxi_stats:
     - hosts
     - vms
     - datastores
+    - licenses
 ```
 
 To enable debug
