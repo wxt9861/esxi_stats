@@ -33,6 +33,6 @@ remove_snapshot:
     vm:
       description: Name of the Virtual Machine
       example: 'vm_name'
-    all:
-      description: Removes ALL snapshots
-      example: 'true/false'
+    command:
+      description: Which snapshot to remove
+      example: 'all/first/last'

@@ -55,6 +55,29 @@ def check_license(lic):
                             return True
 
 
+async def get_license_info(lic):
+    """get license information"""
+    expiration = "n/a"
+    product = "n/a"
+    for key in lic.properties:
+        if key.key == "ProductName":
+            product = key.value
+        if key.key == "count_disabled":
+            expiration = "never"
+        if key.key == "expirationHours":
+            expiration = round((key.value / 24), 1)
+
+    license_data = {
+        "name": lic.name,
+        "product": product,
+        "expiration": expiration
+    }
+
+    _LOGGER.debug(license_data)
+
+    return license_data
+
+
 def get_host_info(host):
     """get host information"""
     host_summary = host.summary
@@ -182,13 +205,19 @@ def get_vm_info(vm):
     return vm_data
 
 
-def listSnapshots(snapshots):
-    """get VM snapshot information"""
+def listSnapshots(snapshots, tree=False):
+    """get VM snapshot information
+
+    tree=True will return snapshot tree details required for snapshot removal
+    """
     snapshot_data = []
 
     for snapshot in snapshots:
-        snapshot_data.append(snapshot.id)
-        snapshot_data = snapshot_data + listSnapshots(snapshot.childSnapshotList)
+        if tree is True:
+            snapshot_data.append(snapshot)
+        else:
+            snapshot_data.append(snapshot.id)
+        snapshot_data = snapshot_data + listSnapshots(snapshot.childSnapshotList, tree)
 
     return snapshot_data
 
@@ -277,7 +306,7 @@ async def vm_snap_take(hass, target_vm, snap_name, desc, memory, quiesce, conn_d
     return True
 
 
-async def vm_snap_remove(hass, target_vm, remove_all, conn_details):
+async def vm_snap_remove(hass, target_vm, target_cmnd, conn_details):
     """Remove Snapshot commands"""
     conn = await esx_connect(**conn_details)
     content = conn.RetrieveContent()
@@ -289,16 +318,33 @@ async def vm_snap_remove(hass, target_vm, remove_all, conn_details):
 
     try:
         for vm in [vm for vm in data if vm.name in target_vm]:
-            _LOGGER.info("Sending create snapshot command to vm '%s'", vm.name)
+            # if there are 0 snapshots, stop
+            if vm.snapshot is None:
+                _LOGGER.info("No snapshots to remove on %s", vm.name)
+                break
 
-            if remove_all is True:
+            _LOGGER.info(
+                "Sending remove '%s' snapshot command to vm '%s'", target_cmnd, vm.name
+            )
+
+            # get a list of all snapshots
+            snapshots = listSnapshots(vm.snapshot.rootSnapshotList, True)
+
+            # remove all snapshots
+            if target_cmnd == "all":
                 task = vm.RemoveAllSnapshots_Task()
-            else:
-                _LOGGER.debug("Looking for snapshot")
+            # remove first snapshot in a snapshot tree
+            elif target_cmnd == "first":
+                first_snap = snapshots[0].snapshot
+                task = first_snap.RemoveSnapshot_Task(False)
+            # remove last snapshot in a snapshot tree
+            elif target_cmnd == "last":
+                last_snap = snapshots[(len(snapshots) - 1)].snapshot
+                task = last_snap.RemoveSnapshot_Task(False)
 
             # while task is running, check status
             if task:
-                message = "remove snapshot on " + vm.name
+                message = "remove " + target_cmnd + " snapshot(s) on " + vm.name
                 await taskStatus(hass, task, message)
             else:
                 _LOGGER.info("Task does not provide feedback")
@@ -321,6 +367,7 @@ async def taskStatus(hass, task, command):
     from asyncio import sleep
     from homeassistant.components import persistent_notification
 
+    # wait while task is in progress
     state = vim.TaskInfo.State
     while task.info.state not in [state.success, state.error]:
         if task.info.progress is not None:

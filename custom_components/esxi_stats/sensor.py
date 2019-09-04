@@ -53,6 +53,29 @@ class esxiSensor(Entity):
             for key, value in self.hass.data[DOMAIN_DATA][self._condition].items():
                 self.attr[key] = value
 
+        if self._condition == 'licenses':
+            self._measurement = "status"
+            expiration_count = 0
+            expired = False
+
+            for key, value in self.hass.data[DOMAIN_DATA][self._condition].items():
+                self.attr[key] = value
+
+                # check is license expires in 30 or less days or already expired
+                if value["expiration"] != "never" and value["expiration"] <= 30:
+                    expiration_count += 1
+                if value["expiration"] != "never" and value["expiration"] <= 1:
+                    expiration_count += 1
+                    expired = True
+
+            # set state based on license expiration
+            if expiration_count != 0 and expired is False:
+                self._state = "Expiring Soon"
+            elif expiration_count != 0 and expired is True:
+                self._state = "Expired"
+            else:
+                self._state = "OK"
+
         # set vm measurement/attirbutes
         if self._condition == "vms":
             self._measurement = "virtual machine(s)"

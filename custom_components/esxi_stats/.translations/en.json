@@ -13,6 +13,7 @@
                     "verify_ssl": "Verify SSL",
                     "hosts": "Get information about the hosts",
                     "datastores": "Get information about the datastores",
+                    "licenses": "Get information about licenses",
                     "vms": "Get information about the VM's"
                 }
             }

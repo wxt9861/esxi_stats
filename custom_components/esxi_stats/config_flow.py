@@ -5,7 +5,7 @@ from collections import OrderedDict
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.helpers import aiohttp_client
+# from homeassistant.helpers import aiohttp_client
 
 from .const import DOMAIN, DEFAULT_PORT
 from .esxi import esx_connect, esx_disconnect
@@ -35,10 +35,16 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
 
         if user_input is not None:
             valid = await self._test_communication(
-                user_input["host"], user_input["port"], user_input["verify_ssl"],
-                user_input["username"], user_input["password"])
+                user_input["host"],
+                user_input["port"],
+                user_input["verify_ssl"],
+                user_input["username"],
+                user_input["password"],
+            )
             if valid:
-                return self.async_create_entry(title=user_input["host"], data=user_input)
+                return self.async_create_entry(
+                    title=user_input["host"], data=user_input
+                )
             else:
                 self._errors["base"] = "communication"
 
@@ -57,6 +63,7 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
         verify_ssl = False
         hosts = True
         datastores = False
+        licenses = False
         vms = False
 
         if user_input is not None:
@@ -75,6 +82,8 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
                 hosts = user_input["hosts"]
             if "datastores" in user_input:
                 datastores = user_input["datastores"]
+            if "licenses" in user_input:
+                licenses = user_input["licenses"]
             if "vms" in user_input:
                 vms = user_input["vms"]
 
@@ -86,6 +95,7 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
         data_schema[vol.Optional("verify_ssl", default=verify_ssl)] = bool
         data_schema[vol.Optional("hosts", default=hosts)] = bool
         data_schema[vol.Optional("datastores", default=datastores)] = bool
+        data_schema[vol.Optional("licenses", default=licenses)] = bool
         data_schema[vol.Optional("vms", default=vms)] = bool
         return self.async_show_form(
             step_id="user", data_schema=vol.Schema(data_schema), errors=self._errors
@@ -104,9 +114,7 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
     async def _test_communication(self, host, port, verify_ssl, username, password):
         """Return true if the communication is ok."""
         try:
-            conn = await esx_connect(
-                host, username, password, port, verify_ssl
-            )
+            conn = await esx_connect(host, username, password, port, verify_ssl)
             _LOGGER.debug(conn)
 
             esx_disconnect(conn)

@@ -30,5 +30,6 @@ DEFAULT_PORT = 443
 
 SUPPORTED_PRODUCTS = ["VMware ESX Server", "VMware VirtualCenter Server"]
 AVAILABLE_CMND_VM_POWER = ["on", "off", "reboot", "reset", "shutdown", "suspend"]
+AVAILABLE_CMND_VM_SNAP = ["all", "first", "last"]
 VM = "vm"
 COMMAND = "command"
