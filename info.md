@@ -1,3 +1,13 @@
+{% if prerelease %}
+
+## NB!: This is a BETA version
+
+{% endif %}
+
+## **Breaking Change in v0.4 if configured via Integration UI**
+
+**Due to addition of licenses sensor, the platform will fail to load after the reboot. Remove the re-add the platform.**
+
 # Configuration options
 
 | Key                    | Type      | Required | Default | Description                                                                                                                                                                                                                                                                                                     |
