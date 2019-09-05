@@ -4,9 +4,9 @@
 
 {% endif %}
 
-## **Breaking Change in 0.4 if configured via Integration UI**
+# **Breaking Change in 0.4 if configured via Integration UI**
 
-**Due to addition of licenses sensor, the platform will fail to load after the reboot. Simply remove and re-add the integration from the Integrations UI**
+  **Due to addition of licenses sensor, the platform will fail to load after the reboot. Simply remove and re-add the integration from the Integrations UI**
 
 # Configuration options
 

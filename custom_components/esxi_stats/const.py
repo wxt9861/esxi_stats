@@ -1,3 +1,4 @@
+"""Constants for ESXi Stats."""
 DOMAIN = "esxi_stats"
 DOMAIN_DATA = "{}_data".format(DOMAIN)
 

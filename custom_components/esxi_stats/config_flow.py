@@ -54,7 +54,6 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
 
     async def _show_config_form(self, user_input):
         """Show the configuration form to edit location data."""
-
         # Defaults
         host = ""
         port = DEFAULT_PORT
@@ -103,6 +102,7 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
 
     async def async_step_import(self, user_input):
         """Import a config entry.
+
         Special type of import, we're not actually going to store any data.
         Instead, we're going to rely on the values that are in config file.
         """

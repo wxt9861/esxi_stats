@@ -1,3 +1,5 @@
+"""ESXi commands for ESXi Stats component."""
+
 import logging
 from pyVim.connect import SmartConnect, SmartConnectNoSSL
 from pyVmomi import vim, vmodl  # pylint: disable=no-name-in-module
@@ -8,7 +10,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 async def esx_connect(host, user, pwd, port, ssl):
-    """establish connection with host/vcenter"""
+    """Establish connection with host/vcenter."""
     si = None
 
     # connect depending on SSL_VERIFY setting
@@ -25,7 +27,7 @@ async def esx_connect(host, user, pwd, port, ssl):
 
 
 def esx_disconnect(conn):
-    """kill connection from host/vcenter"""
+    """Kill connection from host/vcenter."""
     current_session = conn.content.sessionManager.currentSession.key
     try:
         conn._stub.pool[0][0].sock.shutdown(2)
@@ -35,7 +37,7 @@ def esx_disconnect(conn):
 
 
 def check_license(lic):
-    """retreieve license from connected system"""
+    """Retreieve license from connected system."""
     _LOGGER.debug("Checking license type")
     for lic in lic.licenses:
         for key in lic.properties:
@@ -56,7 +58,7 @@ def check_license(lic):
 
 
 async def get_license_info(lic):
-    """get license information"""
+    """Get license information."""
     expiration = "n/a"
     product = "n/a"
     for key in lic.properties:
@@ -79,7 +81,7 @@ async def get_license_info(lic):
 
 
 def get_host_info(host):
-    """get host information"""
+    """Get host information."""
     host_summary = host.summary
     host_name = host_summary.config.name.replace(" ", "_").lower()
     host_version = host_summary.config.product.version
@@ -107,7 +109,7 @@ def get_host_info(host):
 
 
 def get_datastore_info(ds):
-    """get datastore information"""
+    """Get datastore information."""
     ds_summary = ds.summary
     ds_name = ds_summary.name.replace(" ", "_").lower()
     ds_capacity = round(ds_summary.capacity / 1073741824, 2)
@@ -129,7 +131,7 @@ def get_datastore_info(ds):
 
 
 def get_vm_info(vm):
-    """get VM information"""
+    """Get VM information."""
     vm_sum = vm.summary
     vm_run = vm.runtime
     vm_snap = vm.snapshot
@@ -206,7 +208,7 @@ def get_vm_info(vm):
 
 
 def listSnapshots(snapshots, tree=False):
-    """get VM snapshot information
+    """Get VM snapshot information.
 
     tree=True will return snapshot tree details required for snapshot removal
     """
@@ -223,7 +225,7 @@ def listSnapshots(snapshots, tree=False):
 
 
 async def vm_pwr(hass, target_vm, target_cmnd, conn_details):
-    """VM power commands"""
+    """VM power commands."""
     conn = await esx_connect(**conn_details)
     content = conn.RetrieveContent()
     objView = content.viewManager.CreateContainerView(
@@ -272,7 +274,7 @@ async def vm_pwr(hass, target_vm, target_cmnd, conn_details):
 
 
 async def vm_snap_take(hass, target_vm, snap_name, desc, memory, quiesce, conn_details):
-    """Take Snapshot commands"""
+    """Take Snapshot commands."""
     conn = await esx_connect(**conn_details)
     content = conn.RetrieveContent()
     objView = content.viewManager.CreateContainerView(
@@ -307,7 +309,7 @@ async def vm_snap_take(hass, target_vm, snap_name, desc, memory, quiesce, conn_d
 
 
 async def vm_snap_remove(hass, target_vm, target_cmnd, conn_details):
-    """Remove Snapshot commands"""
+    """Remove Snapshot commands."""
     conn = await esx_connect(**conn_details)
     content = conn.RetrieveContent()
     objView = content.viewManager.CreateContainerView(
@@ -363,7 +365,7 @@ async def vm_snap_remove(hass, target_vm, target_cmnd, conn_details):
 
 
 async def taskStatus(hass, task, command):
-    """check status of running command"""
+    """Check status of running task."""
     from asyncio import sleep
     from homeassistant.components import persistent_notification
 

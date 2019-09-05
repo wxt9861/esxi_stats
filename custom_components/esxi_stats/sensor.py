@@ -11,7 +11,6 @@ async def async_setup_platform(
     hass, config, async_add_entities, discovery_info=None
 ):  # pylint: disable=unused-argument
     """Setup sensor platform."""
-
     for condition in hass.data[DOMAIN_DATA]["monitored_conditions"]:
         async_add_entities([esxiSensor(hass, discovery_info, condition)], True)
 
@@ -24,9 +23,10 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
 
 
 class esxiSensor(Entity):
-    """esxi_stats Sensor class."""
+    """ESXi_stats Sensor class."""
 
     def __init__(self, hass, config, condition, config_entry=None):
+        """Init."""
         self.hass = hass
         self.attr = {}
         self.config_entry = config_entry
@@ -36,6 +36,7 @@ class esxiSensor(Entity):
         self._condition = condition
 
     async def async_update(self):
+        """Update the sensor."""
         await self.hass.data[DOMAIN_DATA]["client"].update_data()
 
         # set state
@@ -84,7 +85,7 @@ class esxiSensor(Entity):
 
     @property
     def unique_id(self):
-        """Return a unique ID to use for this binary_sensor."""
+        """Return a unique ID to use for this sensor."""
         return "{}_52446d23-5e54-4525-8018-56da195d276f_{}".format(
             self.config["host"].replace(".", "_"), self._condition
         )
@@ -116,6 +117,7 @@ class esxiSensor(Entity):
 
     @property
     def device_info(self):
+        """Return device info for this sensor."""
         if self.config_entry is None:
             indentifier = {(DOMAIN, self.config["host"].replace(".", "_"))}
         else:

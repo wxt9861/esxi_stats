@@ -246,6 +246,8 @@ async def async_setup_entry(hass, config_entry):
 
 
 class esxiStats:
+    """This class handles communication, services, and stores the data."""
+
     def __init__(self, hass, config):
         """Initialize the class."""
         self.hass = hass
@@ -258,6 +260,7 @@ class esxiStats:
 
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
     async def update_data(self):
+        """Update data."""
         try:
             # connect and get data from host
             conn = await esx_connect(
@@ -349,6 +352,7 @@ async def check_files(hass):
 
 
 async def add_services(hass, conn_details):
+    """Add ESXi Stats services."""
     # vm power service
     async def vm_power(call):
         vm = call.data["vm"]
