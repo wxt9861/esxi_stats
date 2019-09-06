@@ -11,7 +11,6 @@ async def async_setup_platform(
     hass, config, async_add_entities, discovery_info=None
 ):  # pylint: disable=unused-argument
     """Setup sensor platform."""
-
     for condition in hass.data[DOMAIN_DATA]["monitored_conditions"]:
         async_add_entities([esxiSensor(hass, discovery_info, condition)], True)
 
@@ -24,9 +23,10 @@ async def async_setup_entry(hass, config_entry, async_add_devices):
 
 
 class esxiSensor(Entity):
-    """esxi_stats Sensor class."""
+    """ESXi_stats Sensor class."""
 
     def __init__(self, hass, config, condition, config_entry=None):
+        """Init."""
         self.hass = hass
         self.attr = {}
         self.config_entry = config_entry
@@ -36,6 +36,7 @@ class esxiSensor(Entity):
         self._condition = condition
 
     async def async_update(self):
+        """Update the sensor."""
         await self.hass.data[DOMAIN_DATA]["client"].update_data()
 
         # set state
@@ -53,6 +54,29 @@ class esxiSensor(Entity):
             for key, value in self.hass.data[DOMAIN_DATA][self._condition].items():
                 self.attr[key] = value
 
+        if self._condition == 'licenses':
+            self._measurement = "status"
+            expiration_count = 0
+            expired = False
+
+            for key, value in self.hass.data[DOMAIN_DATA][self._condition].items():
+                self.attr[key] = value
+
+                # check is license expires in 30 or less days or already expired
+                if value["expiration"] != "never" and value["expiration"] <= 30:
+                    expiration_count += 1
+                if value["expiration"] != "never" and value["expiration"] < 1:
+                    expiration_count += 1
+                    expired = True
+
+            # set state based on license expiration
+            if expiration_count != 0 and expired is False:
+                self._state = "Expiring Soon"
+            elif expiration_count != 0 and expired is True:
+                self._state = "Expired"
+            else:
+                self._state = "OK"
+
         # set vm measurement/attirbutes
         if self._condition == "vms":
             self._measurement = "virtual machine(s)"
@@ -61,7 +85,7 @@ class esxiSensor(Entity):
 
     @property
     def unique_id(self):
-        """Return a unique ID to use for this binary_sensor."""
+        """Return a unique ID to use for this sensor."""
         return "{}_52446d23-5e54-4525-8018-56da195d276f_{}".format(
             self.config["host"].replace(".", "_"), self._condition
         )
@@ -93,6 +117,7 @@ class esxiSensor(Entity):
 
     @property
     def device_info(self):
+        """Return device info for this sensor."""
         if self.config_entry is None:
             indentifier = {(DOMAIN, self.config["host"].replace(".", "_"))}
         else:

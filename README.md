@@ -1,5 +1,7 @@
 # ESXi Stats
 
+[![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/custom-components/hacs)
+
 - [Installation](#installation)
 - [Configuration](#configuration-options)
 - [Service Calls](#service-calls)
@@ -29,6 +31,14 @@ The component pulls the following information:
   - Total space in GB
   - number of connected hosts
   - number of residing VMs
+
+- Liceses (sensor.esxi_stats_licenses)
+
+  - License Name
+  - Product Type
+  - Expiration (in days, if any)
+
+  Sensor status will output OK, unless there are licenses expiring within 30 days
 
 - Virtual Machines (sensor.esxi_stats_vms)
   - VM name
@@ -75,7 +85,7 @@ Sensor Example
 | `username`             | `string`  | `True`   | None    | Username to ESXi host or vCenter                                                                                                                                                                                                                                                                                |
 | `password`             | `string`  | `True`   | None    | Password to ESXi host or vCenter                                                                                                                                                                                                                                                                                |
 | `verify_ssl`           | `boolean` | False    | False   | Leave at default if your ESXi host or vCenter is using a self-signed certificate (most likely scneario). Change to **true** if you replaced a self-signed certificate. If you're using a self-signed cert and set this to True, the component will not be able to establish a connection with the host/vcenter. |
-| `monitored_conditions` | `list`    | False    | hosts   | What information do you want to get from the host/vcenter. Available options are **hosts**, **datastores**, **vms**                                                                                                                                                                                             |
+| `monitored_conditions` | `list`    | False    | hosts   | What information do you want to get from the host/vcenter. Available options are **hosts**, **datastores**, **licenses**, and **vms**                                                                                                                                                                           |
 
 ESXi Stats can be configured via Integrations page or in yaml
 
@@ -97,7 +107,7 @@ esxi_stats:
   password: <password>
 ```
 
-The below configuartion will get host stats, datastore stats, and vm stats.
+The below configuartion will get host, datastore, license, and vm stats.
 
 ```yaml
 esxi_stats:
@@ -108,6 +118,7 @@ esxi_stats:
     - hosts
     - vms
     - datastores
+    - licenses
 ```
 
 To enable debug
@@ -122,17 +133,49 @@ logger:
 
 Service calls are only available with a full ESXi license. On start up the component will scan available licenses and register services only if a compatible license is found.
 
-Right now only VM Power commands are supported (use esxi_stats.vm_power). You can on,off,reboot,reset,shutdown,suspend a VM.
 To issue a command:
 
-1. Select esxi_stats.vm_power from the Development Tools > Services > Service dropdown
-2. Enter required data - vm and command
+1. Select the service from the Development Tools > Services > Service dropdown
+2. Enter required data
 
-```json
-{ "vm": "vm_name", "command": "suspend" }
-```
+The following serivces are available:
 
-Some commands provide status (ex. suspending a VM or resuming a VM), while other commands are fire and forget (ex. reboot/shutdown). Commands that provide status will output info message to logger when they are complete.
+- **esxi_stats.vm_power** - on,off,reboot,reset,shutdown,suspend a VM
+
+  ```json
+  { "vm": "vm_name", "command": "suspend" }
+  ```
+
+- **esxi_stats.create_snapshot** - create a VM snapshot
+
+  - Snapshots can be created with/without memory dump and with/without quiescing a file system. Defaults are to snapshot without memory and quiesce.
+  - Minimum required parameters are **vm** and **name**
+
+  ```json
+  { "vm": "vm_name", "name": "snapshot before upgrde" }
+  ```
+
+  - Optional parameters are **description**, **memory**, and **quiesce**
+  - If no description is specified, a default description will be added to indicate that the snapshot was taken from HomeAssistant
+
+  ```json
+  {
+    "vm": "vm_name",
+    "name": "snapshot before upgrade",
+    "memory": true,
+    "quiesce": true
+  }
+  ```
+
+- **esxi_stats.remove_snapshot** - remove **all** or **first**/**last** snapshot in a snapshot tree
+
+  - This is a work in progress, once I figure out how to better handle multiple snapshots, only basic options are available
+
+  ```json
+  { "vm": "vm_name", "command": "all" }
+  ```
+
+Some commands provide status (ex. suspending a VM or resuming a VM), while other commands are fire and forget (ex. reboot/shutdown). Commands that provide status will output info messages to logger and create a persistent notification when they are complete.
 
 **When executing commands, understand what each command does**
 (ex. to gracefully shutdown, send a **shutdown** command not an **off** command)
