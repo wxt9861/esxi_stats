@@ -65,7 +65,7 @@ class esxiSensor(Entity):
                 # check is license expires in 30 or less days or already expired
                 if value["expiration"] != "never" and value["expiration"] <= 30:
                     expiration_count += 1
-                if value["expiration"] != "never" and value["expiration"] <= 1:
+                if value["expiration"] != "never" and value["expiration"] < 1:
                     expiration_count += 1
                     expired = True
 

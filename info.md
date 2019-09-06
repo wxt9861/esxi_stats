@@ -6,7 +6,9 @@
 
 # **Breaking Change in 0.4 if configured via Integration UI**
 
-  **Due to addition of licenses sensor, the platform will fail to load after the reboot. Simply remove and re-add the integration from the Integrations UI**
+Due to addition of licenses sensor, the platform will fail to load after the reboot.
+
+To fix - 1. restart Home Assistant 2. remove and re-add the integration from the Integrations UI
 
 # Configuration options
 
@@ -16,7 +18,7 @@
 | `username`             | `string`  | `True`   | None    | Username to ESXi host or vCenter                                                                                                                                                                                                                                                                                |
 | `password`             | `string`  | `True`   | None    | Password to ESXi host or vCenter                                                                                                                                                                                                                                                                                |
 | `verify_ssl`           | `boolean` | False    | False   | Leave at default if your ESXi host or vCenter is using a self-signed certificate (most likely scneario). Change to **true** if you replaced a self-signed certificate. If you're using a self-signed cert and set this to True, the component will not be able to establish a connection with the host/vcenter. |
-| `monitored_conditions` | `list`    | False    | hosts   | What information do you want to get from the host/vcenter. Available options are **hosts**, **datastores**, **vms**                                                                                                                                                                                             |
+| `monitored_conditions` | `list`    | False    | hosts   | What information do you want to get from the host/vcenter. Available options are **hosts**, **datastores**, **licenses**, and **vms**                                                                                                                                                                           |
 
 ESXi Stats can be configured via Integrations page or in yaml
 
