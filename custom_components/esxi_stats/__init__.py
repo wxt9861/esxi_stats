@@ -267,54 +267,50 @@ class esxiStats:
                 self.host, self.user, self.passwd, self.port, self.ssl
             )
             content = conn.RetrieveContent()
-
         except Exception as error:
             _LOGGER.error("ERROR: %s", error)
-
         else:
-            # create/distroy view objects
-            host_objview = content.viewManager.CreateContainerView(
-                content.rootFolder, [vim.HostSystem], True
-            )
-            ds_objview = content.viewManager.CreateContainerView(
-                content.rootFolder, [vim.Datastore], True
-            )
-            vm_objview = content.viewManager.CreateContainerView(
-                content.rootFolder, [vim.VirtualMachine], True
-            )
-
-            esxi_hosts = host_objview.view
-            ds_list = ds_objview.view
-            vm_list = vm_objview.view
-            lic_list = content.licenseManager
-
-            host_objview.Destroy()
-            ds_objview.Destroy()
-            vm_objview.Destroy()
-
             # get host stats
             if "hosts" in self.monitored_conditions:
+                # create/distroy view objects
+                host_objview = content.viewManager.CreateContainerView(
+                    content.rootFolder, [vim.HostSystem], True
+                )
+                esxi_hosts = host_objview.view
+                host_objview.Destroy()
+
+                # Look through object list and get data
                 for esxi_host in esxi_hosts:
                     host_name = esxi_host.summary.config.name.replace(" ", "_").lower()
 
                     _LOGGER.debug("Getting stats for host: %s", host_name)
-                    self.hass.data[DOMAIN_DATA]["hosts"][host_name] = get_host_info(
-                        esxi_host
-                    )
+                    self.hass.data[DOMAIN_DATA]["hosts"][
+                        host_name
+                    ] = await get_host_info(esxi_host)
 
             # get datastore stats
             if "datastores" in self.monitored_conditions:
+                # create/distroy view objects
+                ds_objview = content.viewManager.CreateContainerView(
+                    content.rootFolder, [vim.Datastore], True
+                )
+                ds_list = ds_objview.view
+                ds_objview.Destroy()
+
+                # Look through object list and get data
                 for ds in ds_list:
                     ds_name = ds.summary.name.replace(" ", "_").lower()
 
                     _LOGGER.debug("Getting stats for datastore: %s", ds_name)
                     self.hass.data[DOMAIN_DATA]["datastores"][
                         ds_name
-                    ] = get_datastore_info(ds)
+                    ] = await get_datastore_info(ds)
 
             # get license stats
             if "licenses" in self.monitored_conditions:
+                lic_list = content.licenseManager
                 _count = 1
+
                 for lic in lic_list.licenses:
                     _LOGGER.debug("Getting stats for licenses")
                     self.hass.data[DOMAIN_DATA]["licenses"][
@@ -324,11 +320,19 @@ class esxiStats:
 
             # get vm stats
             if "vms" in self.monitored_conditions:
+                # create/distroy view objects
+                vm_objview = content.viewManager.CreateContainerView(
+                    content.rootFolder, [vim.VirtualMachine], True
+                )
+                vm_list = vm_objview.view
+                vm_objview.Destroy()
+
+                # Look through object list and get data
                 for vm in vm_list:
                     vm_name = vm.summary.config.name.replace(" ", "_").lower()
 
                     _LOGGER.debug("Getting stats for vm: %s", vm_name)
-                    self.hass.data[DOMAIN_DATA]["vms"][vm_name] = get_vm_info(vm)
+                    self.hass.data[DOMAIN_DATA]["vms"][vm_name] = await get_vm_info(vm)
         finally:
             esx_disconnect(conn)
 

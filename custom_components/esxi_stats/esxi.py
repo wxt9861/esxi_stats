@@ -69,18 +69,14 @@ async def get_license_info(lic):
         if key.key == "expirationHours":
             expiration = round((key.value / 24), 1)
 
-    license_data = {
-        "name": lic.name,
-        "product": product,
-        "expiration": expiration
-    }
+    license_data = {"name": lic.name, "product": product, "expiration": expiration}
 
     _LOGGER.debug(license_data)
 
     return license_data
 
 
-def get_host_info(host):
+async def get_host_info(host):
     """Get host information."""
     host_summary = host.summary
     host_name = host_summary.config.name.replace(" ", "_").lower()
@@ -108,7 +104,7 @@ def get_host_info(host):
     return host_data
 
 
-def get_datastore_info(ds):
+async def get_datastore_info(ds):
     """Get datastore information."""
     ds_summary = ds.summary
     ds_name = ds_summary.name.replace(" ", "_").lower()
@@ -130,7 +126,7 @@ def get_datastore_info(ds):
     return ds_data
 
 
-def get_vm_info(vm):
+async def get_vm_info(vm):
     """Get VM information."""
     vm_sum = vm.summary
     vm_run = vm.runtime
@@ -180,7 +176,13 @@ def get_vm_info(vm):
             vm_uptime = "n/a"
             _LOGGER.debug("Unable to return uptime for %s", vm_name)
 
-        vm_guest_os = vm_sum.guest.guestFullName
+        if vm_sum.guest.guestFullName:
+            vm_guest_os = vm_sum.guest.guestFullName
+        else:
+            _LOGGER.debug(
+                ("Unable to return Guest OS Name, using Configured Guest Name instead")
+            )
+            vm_guest_os = vm_sum.config.guestFullName
     else:
         vm_cpu_usage = "n/a"
         vm_mem_usage = "n/a"
