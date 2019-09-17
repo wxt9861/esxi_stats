@@ -2,7 +2,7 @@
 import logging
 from homeassistant.helpers.entity import Entity
 
-from .const import DOMAIN, DOMAIN_DATA, DEFAULT_NAME
+from .const import DOMAIN, DOMAIN_DATA, DEFAULT_NAME, DEFAULT_OPTIONS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,7 +34,12 @@ class esxiSensor(Entity):
         self._config_entry = config_entry
         self._state = None
         self.config = config
-        self._options = self._config_entry.options
+        # If configured via yaml, set options to defaults
+        # This is likely a temporary fix because yaml config will likely be removed
+        if config_entry is not None:
+            self._options = self._config_entry.options
+        else:
+            self._options = DEFAULT_OPTIONS
         self._cond = cond
         self._obj = obj
         self._name = self._obj

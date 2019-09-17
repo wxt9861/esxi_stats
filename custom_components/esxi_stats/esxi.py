@@ -72,6 +72,8 @@ async def get_license_info(lic):
             expiration = round((key.value / 24))
 
     if isinstance(expiration, int):
+        if expiration > 30:
+            status = "Ok"
         if expiration <= 30:
             status = "Expiring Soon"
         if expiration < 1:

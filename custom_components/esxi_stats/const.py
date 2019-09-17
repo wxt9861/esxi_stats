@@ -39,6 +39,14 @@ DEFAULT_HOST_STATE = "vms"
 DEFAULT_LIC_STATE = "status"
 DEFAULT_VM_STATE = "state"
 
+# used to set default states for yaml config.
+DEFAULT_OPTIONS = {
+    "ds_state": "free_space_gb",
+    "host_state": "vms",
+    "license_state": "status",
+    "vm_state": "state"
+}
+
 SUPPORTED_PRODUCTS = ["VMware ESX Server", "VMware VirtualCenter Server"]
 AVAILABLE_CMND_VM_POWER = ["on", "off", "reboot", "reset", "shutdown", "suspend"]
 AVAILABLE_CMND_VM_SNAP = ["all", "first", "last"]
