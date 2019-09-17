@@ -5,9 +5,22 @@ from collections import OrderedDict
 import voluptuous as vol
 
 from homeassistant import config_entries
+from homeassistant.core import callback
+
 # from homeassistant.helpers import aiohttp_client
 
-from .const import DOMAIN, DEFAULT_PORT
+from .const import (
+    CONF_DS_STATE,
+    CONF_HOST_STATE,
+    CONF_LIC_STATE,
+    CONF_VM_STATE,
+    DOMAIN,
+    DEFAULT_PORT,
+    DEFAULT_DS_STATE,
+    DEFAULT_HOST_STATE,
+    DEFAULT_LIC_STATE,
+    DEFAULT_VM_STATE,
+)
 from .esxi import esx_connect, esx_disconnect
 
 
@@ -20,6 +33,12 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
 
     VERSION = 1
     CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
+
+    @staticmethod
+    @callback
+    def async_get_options_flow(config_entry):
+        """Get the options flow for this handler."""
+        return ESXiStatsOptionsFlow(config_entry)
 
     def __init__(self):
         """Initialize."""
@@ -60,10 +79,10 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
         username = ""
         password = ""
         verify_ssl = False
-        hosts = True
-        datastores = False
-        licenses = False
-        vms = False
+        vmhost = True
+        datastore = False
+        license = False
+        vm = False
 
         if user_input is not None:
             if "host" in user_input:
@@ -77,14 +96,14 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
 
             if "verify_ssl" in user_input:
                 verify_ssl = user_input["verify_ssl"]
-            if "hosts" in user_input:
-                hosts = user_input["hosts"]
-            if "datastores" in user_input:
-                datastores = user_input["datastores"]
-            if "licenses" in user_input:
-                licenses = user_input["licenses"]
-            if "vms" in user_input:
-                vms = user_input["vms"]
+            if "vmhost" in user_input:
+                vmhost = user_input["vmhost"]
+            if "datastore" in user_input:
+                datastore = user_input["datastore"]
+            if "license" in user_input:
+                license = user_input["license"]
+            if "vm" in user_input:
+                vm = user_input["vm"]
 
         data_schema = OrderedDict()
         data_schema[vol.Required("host", default=host)] = str
@@ -92,10 +111,10 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
         data_schema[vol.Required("username", default=username)] = str
         data_schema[vol.Required("password", default=password)] = str
         data_schema[vol.Optional("verify_ssl", default=verify_ssl)] = bool
-        data_schema[vol.Optional("hosts", default=hosts)] = bool
-        data_schema[vol.Optional("datastores", default=datastores)] = bool
-        data_schema[vol.Optional("licenses", default=licenses)] = bool
-        data_schema[vol.Optional("vms", default=vms)] = bool
+        data_schema[vol.Optional("vmhost", default=vmhost)] = bool
+        data_schema[vol.Optional("datastore", default=datastore)] = bool
+        data_schema[vol.Optional("license", default=license)] = bool
+        data_schema[vol.Optional("vm", default=vm)] = bool
         return self.async_show_form(
             step_id="user", data_schema=vol.Schema(data_schema), errors=self._errors
         )
@@ -122,3 +141,57 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
         except Exception as exception:  # pylint: disable=broad-except
             _LOGGER.error(exception)
             return False
+
+
+class ESXiStatsOptionsFlow(config_entries.OptionsFlow):
+    """Handle ESXi Stats options"""
+
+    def __init__(self, config_entry):
+        """Initialize ESXi Stats options flow."""
+        self.config_entry = config_entry
+        self.options = dict(config_entry.options)
+
+    async def async_step_init(self, user_input=None):
+        """Manage ESXi Stats options."""
+        return await self.async_step_esxi_options()
+
+    async def async_step_esxi_options(self, user_input=None):
+        """Manage ESXi Stats Options."""
+        if user_input is not None:
+            self.options[CONF_HOST_STATE] = user_input[CONF_HOST_STATE]
+            self.options[CONF_DS_STATE] = user_input[CONF_DS_STATE]
+            self.options[CONF_LIC_STATE] = user_input[CONF_LIC_STATE]
+            self.options[CONF_VM_STATE] = user_input[CONF_VM_STATE]
+            return self.async_create_entry(title="", data=self.options)
+
+        return self.async_show_form(
+            step_id="esxi_options",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_HOST_STATE,
+                        default=self.config_entry.options.get(
+                            CONF_HOST_STATE, DEFAULT_HOST_STATE
+                        ),
+                    ): str,
+                    vol.Optional(
+                        CONF_DS_STATE,
+                        default=self.config_entry.options.get(
+                            CONF_DS_STATE, DEFAULT_DS_STATE
+                        ),
+                    ): str,
+                    vol.Optional(
+                        CONF_LIC_STATE,
+                        default=self.config_entry.options.get(
+                            CONF_LIC_STATE, DEFAULT_LIC_STATE
+                        ),
+                    ): str,
+                    vol.Optional(
+                        CONF_VM_STATE,
+                        default=self.config_entry.options.get(
+                            CONF_VM_STATE, DEFAULT_VM_STATE
+                        ),
+                    ): str,
+                }
+            ),
+        )

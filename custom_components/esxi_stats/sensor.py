@@ -11,83 +11,68 @@ async def async_setup_platform(
     hass, config, async_add_entities, discovery_info=None
 ):  # pylint: disable=unused-argument
     """Setup sensor platform."""
-    for condition in hass.data[DOMAIN_DATA]["monitored_conditions"]:
-        async_add_entities([esxiSensor(hass, discovery_info, condition)], True)
+    for cond in hass.data[DOMAIN_DATA]["monitored_conditions"]:
+        for obj in hass.data[DOMAIN_DATA][cond]:
+            async_add_entities([esxiSensor(hass, discovery_info, cond, obj)], True)
 
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
     """Setup sensor platform."""
     config = config_entry.data
-    for condition in hass.data[DOMAIN_DATA]["monitored_conditions"]:
-        async_add_devices([esxiSensor(hass, config, condition)], True)
+    for cond in hass.data[DOMAIN_DATA]["monitored_conditions"]:
+        for obj in hass.data[DOMAIN_DATA][cond]:
+            async_add_devices([esxiSensor(hass, config, cond, obj, config_entry)], True)
 
 
 class esxiSensor(Entity):
     """ESXi_stats Sensor class."""
 
-    def __init__(self, hass, config, condition, config_entry=None):
+    def __init__(self, hass, config, cond, obj, config_entry=None):
         """Init."""
         self.hass = hass
         self.attr = {}
-        self.config_entry = config_entry
+        self._config_entry = config_entry
         self._state = None
         self.config = config
-        self._name = config.get("name", DEFAULT_NAME)
-        self._condition = condition
+        self._options = self._config_entry.options
+        self._cond = cond
+        self._obj = obj
+        self._name = self._obj
 
     async def async_update(self):
         """Update the sensor."""
         await self.hass.data[DOMAIN_DATA]["client"].update_data()
+        self._data = self.hass.data[DOMAIN_DATA][self._cond][self._obj]
 
-        # set state
-        self._state = len(self.hass.data[DOMAIN_DATA][self._condition])
+        # Set vmhost state and measurement
+        if self._cond == "vmhost":
+            self._state = self._data[self._options["host_state"]]
+            self._measurement = measureFormat(self._options["host_state"])
 
-        # set host measurement/attirbutes
-        if self._condition == "hosts":
-            self._measurement = "host(s)"
-            for key, value in self.hass.data[DOMAIN_DATA][self._condition].items():
-                self.attr[key] = value
+        # Set datastore state and measurement
+        if self._cond == "datastore":
+            self._state = self._data[self._options["ds_state"]]
+            self._measurement = measureFormat(self._options["ds_state"])
 
-        # set datastore measurement/attirbutes
-        if self._condition == "datastores":
-            self._measurement = "datastore(s)"
-            for key, value in self.hass.data[DOMAIN_DATA][self._condition].items():
-                self.attr[key] = value
+        # Set license state and measurement
+        if self._cond == "license":
+            self._state = self._data[self._options["license_state"]]
+            self._measurement = measureFormat(self._options["license_state"])
 
-        if self._condition == 'licenses':
-            self._measurement = "status"
-            expiration_count = 0
-            expired = False
+        # Set VM state and measurement
+        if self._cond == "vm":
+            self._state = self._data[self._options["vm_state"]]
+            self._measurement = measureFormat(self._options["vm_state"])
 
-            for key, value in self.hass.data[DOMAIN_DATA][self._condition].items():
-                self.attr[key] = value
-
-                # check is license expires in 30 or less days or already expired
-                if value["expiration"] != "never" and value["expiration"] <= 30:
-                    expiration_count += 1
-                if value["expiration"] != "never" and value["expiration"] < 1:
-                    expiration_count += 1
-                    expired = True
-
-            # set state based on license expiration
-            if expiration_count != 0 and expired is False:
-                self._state = "Expiring Soon"
-            elif expiration_count != 0 and expired is True:
-                self._state = "Expired"
-            else:
-                self._state = "OK"
-
-        # set vm measurement/attirbutes
-        if self._condition == "vms":
-            self._measurement = "virtual machine(s)"
-            for key, value in self.hass.data[DOMAIN_DATA][self._condition].items():
-                self.attr[key] = value
+        # Set attributes
+        for key, value in self._data.items():
+            self.attr[key] = value
 
     @property
     def unique_id(self):
         """Return a unique ID to use for this sensor."""
-        return "{}_52446d23-5e54-4525-8018-56da195d276f_{}".format(
-            self.config["host"].replace(".", "_"), self._condition
+        return "{}_52446d23-5e54-4525-8018-56da195d276f_{}_{}".format(
+            self.config["host"].replace(".", "_"), self._cond, self._obj
         )
 
     @property
@@ -98,7 +83,7 @@ class esxiSensor(Entity):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return "{} {}".format(self._name, self._condition)
+        return "{} {} {}".format(DEFAULT_NAME, self._cond, self._name)
 
     @property
     def state(self):
@@ -118,12 +103,17 @@ class esxiSensor(Entity):
     @property
     def device_info(self):
         """Return device info for this sensor."""
-        if self.config_entry is None:
+        if self._config_entry is None:
             indentifier = {(DOMAIN, self.config["host"].replace(".", "_"))}
         else:
-            indentifier = {(DOMAIN, self.config_entry.entry_id)}
+            indentifier = {(DOMAIN, self._config_entry.entry_id)}
         return {
             "identifiers": indentifier,
             "name": "ESXi Stats",
             "manufacturer": "VMware, Inc.",
         }
+
+
+def measureFormat(input):
+    """Returns measurement in readable form"""
+    return input.replace("_", " ").title()

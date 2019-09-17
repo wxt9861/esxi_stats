@@ -11,10 +11,10 @@
                     "username": "Username",
                     "password": "Password",
                     "verify_ssl": "Verify SSL",
-                    "hosts": "Get information about the hosts",
-                    "datastores": "Get information about the datastores",
-                    "licenses": "Get information about licenses",
-                    "vms": "Get information about the VM's"
+                    "vmhost": "Get information about the hosts",
+                    "datastore": "Get information about the datastores",
+                    "license": "Get information about licenses",
+                    "vm": "Get information about the VMs"
                 }
             }
         },
@@ -23,6 +23,19 @@
         },
         "abort": {
             "single_instance_allowed": "Only a single configuration of ESXI Stats is allowed."
+        }
+    },
+    "options": {
+        "step": {
+            "esxi_options":{
+                "data": {
+                    "host_state": "Host State Attribute",
+                    "ds_state": "Datastore State Attribute",
+                    "license_state": "License State Attribute",
+                    "vm_state": "Virtual Machine State Attribute"
+                },
+                "description": "Configure which attributes are used as states for ESXi sensors"
+            }
         }
     }
 }

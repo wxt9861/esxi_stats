@@ -61,15 +61,30 @@ async def get_license_info(lic):
     """Get license information."""
     expiration = "n/a"
     product = "n/a"
+    status = "n/a"
+
     for key in lic.properties:
         if key.key == "ProductName":
             product = key.value
         if key.key == "count_disabled":
             expiration = "never"
         if key.key == "expirationHours":
-            expiration = round((key.value / 24), 1)
+            expiration = round((key.value / 24))
 
-    license_data = {"name": lic.name, "product": product, "expiration": expiration}
+    if isinstance(expiration, int):
+        if expiration <= 30:
+            status = "Expiring Soon"
+        if expiration < 1:
+            status = "expired"
+    else:
+        status = "Ok"
+
+    license_data = {
+        "name": lic.name,
+        "status": status,
+        "product": product,
+        "expiration": expiration,
+    }
 
     _LOGGER.debug(license_data)
 
@@ -79,6 +94,7 @@ async def get_license_info(lic):
 async def get_host_info(host):
     """Get host information."""
     host_summary = host.summary
+    host_network = host.config.network
     host_name = host_summary.config.name.replace(" ", "_").lower()
     host_version = host_summary.config.product.version
     host_uptime = round(host_summary.quickStats.uptime / 3600, 1)
@@ -88,6 +104,30 @@ async def get_host_info(host):
     host_mem_total = round(host_summary.hardware.memorySize / 1073741824, 2)
     host_cpu_usage = round(host_summary.quickStats.overallCpuUsage / 1000, 1)
     host_mem_usage = round(host_summary.quickStats.overallMemoryUsage / 1024, 2)
+    host_vms = len(host.vm)
+
+    # Get network adapter info
+    network_adapters = {}
+    for nic in host_network.pnic:
+        if nic.spec.linkSpeed is not None:
+            link_status = nic.spec.linkSpeed.speedMb
+        elif nic.linkSpeed is not None:
+            link_status = nic.linkSpeed.speedMb
+        else:
+            link_status = "Link Down"
+
+        network_adapter = {nic.device: link_status}
+        network_adapters.update(network_adapter)
+
+    # Get vSwitch/vDS(maybe?) info
+    switches = {}
+    for network in host_network.vswitch:
+        portgroups = []
+        for portgroup in network.portgroup:
+            portgroups.append(portgroup.split("PortGroup-", 1)[1])
+
+        switch = {network.name: portgroups}
+        switches.update(switch)
 
     host_data = {
         "name": host_name,
@@ -97,6 +137,9 @@ async def get_host_info(host):
         "cpuusage_ghz": host_cpu_usage,
         "memtotal_gb": host_mem_total,
         "memusage_gb": host_mem_usage,
+        "switches": switches,
+        "network_adapters": network_adapters,
+        "vms": host_vms,
     }
 
     _LOGGER.debug(host_data)

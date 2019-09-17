@@ -62,10 +62,10 @@ SNAP_REMOVE_SCHEMA = vol.Schema(
 )
 
 MONITORED_CONDITIONS = {
-    "hosts": ["ESXi Host", "", ""],
-    "datastores": ["Datastores", "", ""],
-    "licenses": ["Licenses", "", ""],
-    "vms": ["Virtual Machines", "", ""],
+    "vmhost": ["ESXi Host", "", ""],
+    "datastore": ["Datastore", "", ""],
+    "license": ["License", "", ""],
+    "vm": ["Virtual Machine", "", ""],
 }
 
 CONFIG_SCHEMA = vol.Schema(
@@ -78,7 +78,7 @@ CONFIG_SCHEMA = vol.Schema(
                 vol.Optional(CONF_PORT, default=DEFAULT_PORT): cv.positive_int,
                 vol.Optional(CONF_VERIFY_SSL, default=False): cv.boolean,
                 vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-                vol.Optional(CONF_MONITORED_CONDITIONS, default=["hosts"]): vol.All(
+                vol.Optional(CONF_MONITORED_CONDITIONS, default=["vmhost"]): vol.All(
                     cv.ensure_list, [vol.In(MONITORED_CONDITIONS)]
                 ),
             }
@@ -105,10 +105,10 @@ async def async_setup(hass, config):
     # create data dictionary
     hass.data[DOMAIN_DATA] = {}
     hass.data[DOMAIN_DATA]["configuration"] = "yaml"
-    hass.data[DOMAIN_DATA]["hosts"] = {}
-    hass.data[DOMAIN_DATA]["datastores"] = {}
-    hass.data[DOMAIN_DATA]["licenses"] = {}
-    hass.data[DOMAIN_DATA]["vms"] = {}
+    hass.data[DOMAIN_DATA]["vmhost"] = {}
+    hass.data[DOMAIN_DATA]["datastore"] = {}
+    hass.data[DOMAIN_DATA]["license"] = {}
+    hass.data[DOMAIN_DATA]["vm"] = {}
     hass.data[DOMAIN_DATA]["monitored_conditions"] = config[DOMAIN].get(
         CONF_MONITORED_CONDITIONS
     )
@@ -127,8 +127,9 @@ async def async_setup(hass, config):
         }
         conn = await esx_connect(**conn_details)
 
-        # get license type
+        # get license type and objects
         lic = check_license(conn.RetrieveContent().licenseManager)
+        await hass.data[DOMAIN_DATA]["client"].update_data()
     except Exception as exception:  # pylint: disable=broad-except
         _LOGGER.error(exception)
     finally:
@@ -186,24 +187,27 @@ async def async_setup_entry(hass, config_entry):
     # create data dictionary
     hass.data[DOMAIN_DATA] = {}
     hass.data[DOMAIN_DATA]["configuration"] = "config_flow"
-    hass.data[DOMAIN_DATA]["hosts"] = {}
-    hass.data[DOMAIN_DATA]["datastores"] = {}
-    hass.data[DOMAIN_DATA]["licenses"] = {}
-    hass.data[DOMAIN_DATA]["vms"] = {}
+    hass.data[DOMAIN_DATA]["vmhost"] = {}
+    hass.data[DOMAIN_DATA]["datastore"] = {}
+    hass.data[DOMAIN_DATA]["license"] = {}
+    hass.data[DOMAIN_DATA]["vm"] = {}
     hass.data[DOMAIN_DATA]["monitored_conditions"] = []
 
-    if config_entry.data["hosts"]:
-        hass.data[DOMAIN_DATA]["monitored_conditions"].append("hosts")
-        config[DOMAIN]["monitored_conditions"].append("hosts")
-    if config_entry.data["datastores"]:
-        hass.data[DOMAIN_DATA]["monitored_conditions"].append("datastores")
-        config[DOMAIN]["monitored_conditions"].append("datastores")
-    if config_entry.data["licenses"]:
-        hass.data[DOMAIN_DATA]["monitored_conditions"].append("licenses")
-        config[DOMAIN]["monitored_conditions"].append("licenses")
-    if config_entry.data["vms"]:
-        hass.data[DOMAIN_DATA]["monitored_conditions"].append("vms")
-        config[DOMAIN]["monitored_conditions"].append("vms")
+    if config_entry.data["vmhost"]:
+        hass.data[DOMAIN_DATA]["monitored_conditions"].append("vmhost")
+        config[DOMAIN]["monitored_conditions"].append("vmhost")
+    if config_entry.data["datastore"]:
+        hass.data[DOMAIN_DATA]["monitored_conditions"].append("datastore")
+        config[DOMAIN]["monitored_conditions"].append("datastore")
+    if config_entry.data["license"]:
+        hass.data[DOMAIN_DATA]["monitored_conditions"].append("license")
+        config[DOMAIN]["monitored_conditions"].append("license")
+    if config_entry.data["vm"]:
+        hass.data[DOMAIN_DATA]["monitored_conditions"].append("vm")
+        config[DOMAIN]["monitored_conditions"].append("vm")
+
+    if not config_entry.options:
+        await async_update_options(hass, config_entry)
 
     # get global config
     _LOGGER.debug("Setting up host %s", config[DOMAIN].get(CONF_HOST))
@@ -219,8 +223,9 @@ async def async_setup_entry(hass, config_entry):
         }
         conn = await esx_connect(**conn_details)
 
-        # get license type
+        # get license type and objects
         lic = check_license(conn.RetrieveContent().licenseManager)
+        await hass.data[DOMAIN_DATA]["client"].update_data()
     except Exception as exception:  # pylint: disable=broad-except
         _LOGGER.error(exception)
         raise ConfigEntryNotReady
@@ -271,7 +276,7 @@ class esxiStats:
             _LOGGER.error("ERROR: %s", error)
         else:
             # get host stats
-            if "hosts" in self.monitored_conditions:
+            if "vmhost" in self.monitored_conditions:
                 # create/distroy view objects
                 host_objview = content.viewManager.CreateContainerView(
                     content.rootFolder, [vim.HostSystem], True
@@ -283,13 +288,13 @@ class esxiStats:
                 for esxi_host in esxi_hosts:
                     host_name = esxi_host.summary.config.name.replace(" ", "_").lower()
 
-                    _LOGGER.debug("Getting stats for host: %s", host_name)
-                    self.hass.data[DOMAIN_DATA]["hosts"][
+                    _LOGGER.debug("Getting stats for vmhost: %s", host_name)
+                    self.hass.data[DOMAIN_DATA]["vmhost"][
                         host_name
                     ] = await get_host_info(esxi_host)
 
             # get datastore stats
-            if "datastores" in self.monitored_conditions:
+            if "datastore" in self.monitored_conditions:
                 # create/distroy view objects
                 ds_objview = content.viewManager.CreateContainerView(
                     content.rootFolder, [vim.Datastore], True
@@ -302,24 +307,24 @@ class esxiStats:
                     ds_name = ds.summary.name.replace(" ", "_").lower()
 
                     _LOGGER.debug("Getting stats for datastore: %s", ds_name)
-                    self.hass.data[DOMAIN_DATA]["datastores"][
+                    self.hass.data[DOMAIN_DATA]["datastore"][
                         ds_name
                     ] = await get_datastore_info(ds)
 
             # get license stats
-            if "licenses" in self.monitored_conditions:
+            if "license" in self.monitored_conditions:
                 lic_list = content.licenseManager
                 _count = 1
 
                 for lic in lic_list.licenses:
                     _LOGGER.debug("Getting stats for licenses")
-                    self.hass.data[DOMAIN_DATA]["licenses"][
+                    self.hass.data[DOMAIN_DATA]["license"][
                         _count
                     ] = await get_license_info(lic)
                     _count += 1
 
             # get vm stats
-            if "vms" in self.monitored_conditions:
+            if "vm" in self.monitored_conditions:
                 # create/distroy view objects
                 vm_objview = content.viewManager.CreateContainerView(
                     content.rootFolder, [vim.VirtualMachine], True
@@ -332,7 +337,7 @@ class esxiStats:
                     vm_name = vm.summary.config.name.replace(" ", "_").lower()
 
                     _LOGGER.debug("Getting stats for vm: %s", vm_name)
-                    self.hass.data[DOMAIN_DATA]["vms"][vm_name] = await get_vm_info(vm)
+                    self.hass.data[DOMAIN_DATA]["vm"][vm_name] = await get_vm_info(vm)
         finally:
             esx_disconnect(conn)
 
@@ -374,25 +379,20 @@ async def add_services(hass, conn_details):
     # snapshot create service
     async def snap_create(call):
         vm = call.data["vm"]
+        memory = False
+        quiesce = False
+        now = datetime.now()
+        desc = "Taken from HASS (" + HAVERSION + ") on " + now.strftime("%x %X")
 
         if "name" in call.data:
             name = call.data["name"]
 
         if "description" in call.data:
             desc = call.data["description"]
-        else:
-            now = datetime.now()
-            desc = "Taken from HASS (" + HAVERSION + ") on " + now.strftime("%x %X")
-
         if "memory" in call.data:
             memory = call.data["memory"]
-        else:
-            memory = False
-
         if "quiesce" in call.data:
             quiesce = call.data["quiesce"]
-        else:
-            quiesce = False
 
         try:
             hass.async_create_task(
@@ -435,3 +435,14 @@ async def async_remove_entry(hass, config_entry):
         for plafrom in PLATFORMS:
             await hass.config_entries.async_forward_entry_unload(config_entry, plafrom)
         _LOGGER.info("Successfully removed the ESXi Stats integration")
+
+
+async def async_update_options(hass, config_entry):
+    options = {
+        "host_state": "vms",
+        "ds_state": "free_space_gb",
+        "license_state": "status",
+        "vm_state": "state",
+    }
+
+    hass.config_entries.async_update_entry(config_entry, options=options)
