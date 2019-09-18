@@ -1,8 +1,15 @@
 """Sensor platform for esxi_stats."""
 import logging
+from string import capwords
 from homeassistant.helpers.entity import Entity
 
-from .const import DOMAIN, DOMAIN_DATA, DEFAULT_NAME, DEFAULT_OPTIONS
+from .const import (
+    DOMAIN,
+    DOMAIN_DATA,
+    DEFAULT_NAME,
+    DEFAULT_OPTIONS,
+    MAP_TO_MEASUREMENT,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -49,29 +56,23 @@ class esxiSensor(Entity):
         await self.hass.data[DOMAIN_DATA]["client"].update_data()
         self._data = self.hass.data[DOMAIN_DATA][self._cond][self._obj]
 
-        # Set vmhost state and measurement
-        if self._cond == "vmhost":
-            self._state = self._data[self._options["host_state"]]
-            self._measurement = measureFormat(self._options["host_state"])
-
-        # Set datastore state and measurement
-        if self._cond == "datastore":
-            self._state = self._data[self._options["ds_state"]]
-            self._measurement = measureFormat(self._options["ds_state"])
-
-        # Set license state and measurement
-        if self._cond == "license":
-            self._state = self._data[self._options["license_state"]]
-            self._measurement = measureFormat(self._options["license_state"])
-
-        # Set VM state and measurement
-        if self._cond == "vm":
-            self._state = self._data[self._options["vm_state"]]
-            self._measurement = measureFormat(self._options["vm_state"])
+        # Set state and measurement
+        if self._options[self._cond] not in self._data.keys():
+            self._state = "Error"
+            self._measurement = ""
+            _LOGGER.error(
+                "State is set to incorrect value. Check Options in Integration UI"
+            )
+        else:
+            self._state = self._data[self._options[self._cond]]
+            self._measurement = measureFormat(self._options[self._cond])
 
         # Set attributes
         for key, value in self._data.items():
-            self.attr[key] = value
+            if key in self._options[self._cond]:
+                continue
+            else:
+                self.attr[key] = value
 
     @property
     def unique_id(self):
@@ -121,4 +122,7 @@ class esxiSensor(Entity):
 
 def measureFormat(input):
     """Returns measurement in readable form"""
-    return input.replace("_", " ").title()
+    if input in MAP_TO_MEASUREMENT.keys():
+        return (MAP_TO_MEASUREMENT[input])
+    else:
+        return capwords(input.replace("_", " "))

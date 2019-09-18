@@ -26,10 +26,10 @@ If you have any issues with this you need to open an issue here:
 """
 
 CONF_NAME = "name"
-CONF_DS_STATE = "ds_state"
-CONF_HOST_STATE = "host_state"
-CONF_LIC_STATE = "license_state"
-CONF_VM_STATE = "vm_state"
+CONF_DS_STATE = "datastore"
+CONF_HOST_STATE = "vmhost"
+CONF_LIC_STATE = "license"
+CONF_VM_STATE = "vm"
 
 # DEFAULT_NAME = "ESXi Stats"
 DEFAULT_NAME = "ESXi"
@@ -41,10 +41,21 @@ DEFAULT_VM_STATE = "state"
 
 # used to set default states for yaml config.
 DEFAULT_OPTIONS = {
-    "ds_state": "free_space_gb",
-    "host_state": "vms",
-    "license_state": "status",
-    "vm_state": "state"
+    "datastore": "free_space_gb",
+    "vmhost": "vms",
+    "license": "status",
+    "vm": "state"
+}
+
+MAP_TO_MEASUREMENT = {
+    "cpu_count": "CPUs",
+    "cpuusage_ghz": "CPU Use (GHz)",
+    "free_space_gb": "Free (GB)",
+    "memusage_gb": "Mem Use (GB)",
+    "total_space_gb": "Total (GB)",
+    "uptime_hours": "Uptime (H)",
+    "virtual_machines": "VMs",
+    "vms": "VMs"
 }
 
 SUPPORTED_PRODUCTS = ["VMware ESX Server", "VMware VirtualCenter Server"]

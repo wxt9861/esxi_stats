@@ -39,6 +39,7 @@ from .const import (
     COMMAND,
     CONF_NAME,
     DEFAULT_NAME,
+    DEFAULT_OPTIONS,
     DEFAULT_PORT,
     DOMAIN,
     DOMAIN_DATA,
@@ -438,11 +439,4 @@ async def async_remove_entry(hass, config_entry):
 
 
 async def async_update_options(hass, config_entry):
-    options = {
-        "host_state": "vms",
-        "ds_state": "free_space_gb",
-        "license_state": "status",
-        "vm_state": "state",
-    }
-
-    hass.config_entries.async_update_entry(config_entry, options=options)
+    hass.config_entries.async_update_entry(config_entry, options=DEFAULT_OPTIONS)

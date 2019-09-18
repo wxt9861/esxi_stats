@@ -29,10 +29,10 @@
         "step": {
             "esxi_options":{
                 "data": {
-                    "host_state": "Host State Attribute",
-                    "ds_state": "Datastore State Attribute",
-                    "license_state": "License State Attribute",
-                    "vm_state": "Virtual Machine State Attribute"
+                    "vmhost": "Host State Attribute",
+                    "datastore": "Datastore State Attribute",
+                    "license": "License State Attribute",
+                    "vm": "Virtual Machine State Attribute"
                 },
                 "description": "Configure which attributes are used as states for ESXi sensors"
             }
