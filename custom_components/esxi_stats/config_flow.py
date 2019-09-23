@@ -20,6 +20,10 @@ from .const import (
     DEFAULT_HOST_STATE,
     DEFAULT_LIC_STATE,
     DEFAULT_VM_STATE,
+    DATASTORE_STATES,
+    LICENSE_STATES,
+    VMHOST_STATES,
+    VM_STATES
 )
 from .esxi import esx_connect, esx_disconnect
 
@@ -181,25 +185,25 @@ class ESXiStatsOptionsFlow(config_entries.OptionsFlow):
                         default=self.config_entry.options.get(
                             CONF_HOST_STATE, DEFAULT_HOST_STATE
                         ),
-                    ): str,
+                    ): vol.In(VMHOST_STATES),
                     vol.Optional(
                         CONF_DS_STATE,
                         default=self.config_entry.options.get(
                             CONF_DS_STATE, DEFAULT_DS_STATE
                         ),
-                    ): str,
+                    ): vol.In(DATASTORE_STATES),
                     vol.Optional(
                         CONF_LIC_STATE,
                         default=self.config_entry.options.get(
                             CONF_LIC_STATE, DEFAULT_LIC_STATE
                         ),
-                    ): str,
+                    ): vol.In(LICENSE_STATES),
                     vol.Optional(
                         CONF_VM_STATE,
                         default=self.config_entry.options.get(
                             CONF_VM_STATE, DEFAULT_VM_STATE
                         ),
-                    ): str,
+                    ): vol.In(VM_STATES),
                 }
             ),
         )

@@ -47,6 +47,36 @@ DEFAULT_OPTIONS = {
     "vm": "state"
 }
 
+DATASTORE_STATES = [
+    "connected_hosts",
+    "free_space_gb",
+    "total_space_gb",
+    "type",
+    "virtual _machines",
+]
+
+LICENSE_STATES = [
+    "expiration_days",
+    "status"
+]
+
+VMHOST_STATES = [
+    "cpuusage_ghz",
+    "memusage_gb",
+    "uptime_hours",
+    "vms"
+]
+
+VM_STATES = [
+    "cpu_use_%",
+    "memory_used_mb",
+    "snapshots",
+    "status",
+    "state",
+    "uptime_hours",
+    "used_space_gb"
+]
+
 MAP_TO_MEASUREMENT = {
     "cpu_count": "CPUs",
     "cpuusage_ghz": "CPU Use (GHz)",
