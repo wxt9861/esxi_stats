@@ -47,12 +47,16 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
     async def async_step_user(self, user_input={}):
         """Handle a flow initialized by the user."""
         self._errors = {}
-        if self._async_current_entries():
-            return self.async_abort(reason="single_instance_allowed")
         if self.hass.data.get(DOMAIN):
             return self.async_abort(reason="single_instance_allowed")
 
         if user_input is not None:
+            # Check if entered host is already in HomeAssistant
+            existing = await self._check_existing(user_input["host"])
+            if existing:
+                return self.async_abort(reason="already_configured")
+
+            # If it is not, continue with communication test
             valid = await self._test_communication(
                 user_input["host"],
                 user_input["port"],
@@ -80,9 +84,9 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
         password = ""
         verify_ssl = False
         vmhost = True
-        datastore = False
-        license = False
-        vm = False
+        datastore = True
+        license = True
+        vm = True
 
         if user_input is not None:
             if "host" in user_input:
@@ -93,7 +97,6 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
                 username = user_input["username"]
             if "password" in user_input:
                 password = user_input["password"]
-
             if "verify_ssl" in user_input:
                 verify_ssl = user_input["verify_ssl"]
             if "vmhost" in user_input:
@@ -129,6 +132,11 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
             return self.async_abort(reason="single_instance_allowed")
 
         return self.async_create_entry(title="configuration.yaml", data={})
+
+    async def _check_existing(self, host):
+        for entry in self._async_current_entries():
+            if host == entry.data.get("host"):
+                return True
 
     async def _test_communication(self, host, port, verify_ssl, username, password):
         """Return true if the communication is ok."""

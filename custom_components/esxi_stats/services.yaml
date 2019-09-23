@@ -1,6 +1,9 @@
 vm_power:
   description: Sends Virtual Machine power commands to vCenter/ESXi Host
   fields:
+    host:
+      description: Host/vCenter where a Virtual Machine resides
+      example: 192.168.1.1
     vm:
       description: Name of the Virtual Machine
       example: 'vm_name'
@@ -11,6 +14,9 @@ vm_power:
 create_snapshot:
   description: Sends a command to vCenter/ESXi Host to take a Virtual Machine snapshot. For detailed information about snapshots see https://kb.vmware.com/s/article/1015180
   fields:
+    host:
+      description: Host/vCenter where a Virtual Machine resides
+      example: 192.168.1.1
     vm:
       description: Name of the Virtual Machine
       example: 'vm_name'
@@ -30,6 +36,9 @@ create_snapshot:
 remove_snapshot:
   description: Sends a command to vCenter/ESXi Host to remove a Virtual Machine snapshot
   fields:
+    host:
+      description: Host/vCenter where a Virtual Machine resides
+      example: 192.168.1.1
     vm:
       description: Name of the Virtual Machine
       example: 'vm_name'

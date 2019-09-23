@@ -26,8 +26,9 @@ async def async_setup_platform(
 async def async_setup_entry(hass, config_entry, async_add_devices):
     """Setup sensor platform."""
     config = config_entry.data
-    for cond in hass.data[DOMAIN_DATA]["monitored_conditions"]:
-        for obj in hass.data[DOMAIN_DATA][cond]:
+    entry_id = config_entry.entry_id
+    for cond in hass.data[DOMAIN_DATA][entry_id]["monitored_conditions"]:
+        for obj in hass.data[DOMAIN_DATA][entry_id][cond]:
             async_add_devices([esxiSensor(hass, config, cond, obj, config_entry)], True)
 
 
@@ -39,6 +40,7 @@ class esxiSensor(Entity):
         self.hass = hass
         self.attr = {}
         self._config_entry = config_entry
+        self.entry_id = config_entry.entry_id
         self._state = None
         self.config = config
         # If configured via yaml, set options to defaults
@@ -53,15 +55,15 @@ class esxiSensor(Entity):
 
     async def async_update(self):
         """Update the sensor."""
-        await self.hass.data[DOMAIN_DATA]["client"].update_data()
-        self._data = self.hass.data[DOMAIN_DATA][self._cond][self._obj]
+        await self.hass.data[DOMAIN_DATA][self.entry_id]["client"].update_data()
+        self._data = self.hass.data[DOMAIN_DATA][self.entry_id][self._cond][self._obj]
 
         # Set state and measurement
         if self._options[self._cond] not in self._data.keys():
             self._state = "Error"
             self._measurement = ""
             _LOGGER.error(
-                "State is set to incorrect value. Check Options in Integration UI"
+                "State is set to incorrect key. Check Options in Integration UI"
             )
         else:
             self._state = self._data[self._options[self._cond]]
@@ -69,10 +71,7 @@ class esxiSensor(Entity):
 
         # Set attributes
         for key, value in self._data.items():
-            if key in self._options[self._cond]:
-                continue
-            else:
-                self.attr[key] = value
+            self.attr[key] = value
 
     @property
     def unique_id(self):

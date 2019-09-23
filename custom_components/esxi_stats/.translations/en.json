@@ -22,7 +22,8 @@
             "communication": "Could not access ESXi with this configuration, check the values."
         },
         "abort": {
-            "single_instance_allowed": "Only a single configuration of ESXI Stats is allowed."
+            "single_instance_allowed": "Only a single configuration of ESXi Stats is allowed.",
+            "already_configured": "This host/vCenter is already configured."
         }
     },
     "options": {

@@ -31,23 +31,17 @@ from homeassistant.const import (
     CONF_MONITORED_CONDITIONS,
     __version__ as HAVERSION,
 )
-from homeassistant.helpers import discovery
 from homeassistant.util import Throttle
 from .const import (
     AVAILABLE_CMND_VM_SNAP,
     AVAILABLE_CMND_VM_POWER,
     COMMAND,
-    CONF_NAME,
-    DEFAULT_NAME,
     DEFAULT_OPTIONS,
-    DEFAULT_PORT,
     DOMAIN,
     DOMAIN_DATA,
-    ISSUE_URL,
     PLATFORMS,
     REQUIRED_FILES,
-    STARTUP,
-    VERSION,
+    HOST,
     VM,
 )
 
@@ -55,114 +49,35 @@ _LOGGER = logging.getLogger(__name__)
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=60)
 
 VM_PWR_SCHEMA = vol.Schema(
-    {vol.Required(VM): cv.string, vol.Required(COMMAND): cv.string}
-)
-SNAP_CREATE_SCHEMA = vol.Schema({vol.Required(VM): cv.string}, extra=vol.ALLOW_EXTRA)
-SNAP_REMOVE_SCHEMA = vol.Schema(
-    {vol.Required(VM): cv.string, vol.Required(COMMAND): cv.string}
-)
-
-MONITORED_CONDITIONS = {
-    "vmhost": ["ESXi Host", "", ""],
-    "datastore": ["Datastore", "", ""],
-    "license": ["License", "", ""],
-    "vm": ["Virtual Machine", "", ""],
-}
-
-CONFIG_SCHEMA = vol.Schema(
     {
-        DOMAIN: vol.Schema(
-            {
-                vol.Required(CONF_HOST): cv.string,
-                vol.Required(CONF_USERNAME): cv.string,
-                vol.Required(CONF_PASSWORD): cv.string,
-                vol.Optional(CONF_PORT, default=DEFAULT_PORT): cv.positive_int,
-                vol.Optional(CONF_VERIFY_SSL, default=False): cv.boolean,
-                vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-                vol.Optional(CONF_MONITORED_CONDITIONS, default=["vmhost"]): vol.All(
-                    cv.ensure_list, [vol.In(MONITORED_CONDITIONS)]
-                ),
-            }
-        )
-    },
-    extra=vol.ALLOW_EXTRA,
+        vol.Required(HOST): cv.string,
+        vol.Required(VM): cv.string,
+        vol.Required(COMMAND): cv.string,
+    }
+)
+SNAP_CREATE_SCHEMA = vol.Schema(
+    {
+        vol.Required(HOST): cv.string,
+        vol.Required(VM): cv.string
+    }, extra=vol.ALLOW_EXTRA
+)
+SNAP_REMOVE_SCHEMA = vol.Schema(
+    {
+        vol.Required(HOST): cv.string,
+        vol.Required(VM): cv.string,
+        vol.Required(COMMAND): cv.string,
+    }
+)
+CONFIG_SCHEMA = vol.Schema(
+    {DOMAIN: vol.Schema({}, extra=vol.ALLOW_EXTRA)}, extra=vol.ALLOW_EXTRA
 )
 
 
 async def async_setup(hass, config):
-    """Set up this integration using yaml."""
-    if DOMAIN not in config:
-        # Using config entries (UI COnfiguration)
-        return True
-    # startup message
-    startup = STARTUP.format(name=DOMAIN, version=VERSION, issueurl=ISSUE_URL)
-    _LOGGER.info(startup)
+    """Set up this integration using yaml.
 
-    # check all required files
-    file_check = await check_files(hass)
-    if not file_check:
-        return False
-
-    # create data dictionary
-    hass.data[DOMAIN_DATA] = {}
-    hass.data[DOMAIN_DATA]["configuration"] = "yaml"
-    hass.data[DOMAIN_DATA]["vmhost"] = {}
-    hass.data[DOMAIN_DATA]["datastore"] = {}
-    hass.data[DOMAIN_DATA]["license"] = {}
-    hass.data[DOMAIN_DATA]["vm"] = {}
-    hass.data[DOMAIN_DATA]["monitored_conditions"] = config[DOMAIN].get(
-        CONF_MONITORED_CONDITIONS
-    )
-
-    # get global config
-    _LOGGER.debug("Setting up host %s", config[DOMAIN].get(CONF_HOST))
-    hass.data[DOMAIN_DATA]["client"] = esxiStats(hass, config)
-
-    try:
-        conn_details = {
-            "host": config[DOMAIN]["host"],
-            "user": config[DOMAIN]["username"],
-            "pwd": config[DOMAIN]["password"],
-            "port": config[DOMAIN]["port"],
-            "ssl": config[DOMAIN]["verify_ssl"],
-        }
-        conn = await esx_connect(**conn_details)
-
-        # get license type and objects
-        lic = check_license(conn.RetrieveContent().licenseManager)
-        await hass.data[DOMAIN_DATA]["client"].update_data()
-    except Exception as exception:  # pylint: disable=broad-except
-        _LOGGER.error(exception)
-    finally:
-        esx_disconnect(conn)
-
-    # load platforms
-    for platform in PLATFORMS:
-        # Get platform specific configuration
-        platform_config = config[DOMAIN]
-
-        hass.async_create_task(
-            discovery.async_load_platform(
-                hass, platform, DOMAIN, platform_config, config
-            )
-        )
-
-    # Tell HA that we used YAML for the configuration
-    hass.async_create_task(
-        hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": config_entries.SOURCE_IMPORT}, data={}
-        )
-    )
-
-    # if lisense allows API write, register services
-    if lic:
-        await add_services(hass, conn_details)
-    else:
-        _LOGGER.info(
-            "Service calls are disabled - %s doesn't have a supported license",
-            config[DOMAIN]["host"],
-        )
-
+    This method is no longer supported.
+    """
     return True
 
 
@@ -183,28 +98,31 @@ async def async_setup_entry(hass, config_entry):
         return False
 
     config = {DOMAIN: config_entry.data}
+    entry = config_entry.entry_id
     config[DOMAIN]["monitored_conditions"] = []
 
     # create data dictionary
-    hass.data[DOMAIN_DATA] = {}
-    hass.data[DOMAIN_DATA]["configuration"] = "config_flow"
-    hass.data[DOMAIN_DATA]["vmhost"] = {}
-    hass.data[DOMAIN_DATA]["datastore"] = {}
-    hass.data[DOMAIN_DATA]["license"] = {}
-    hass.data[DOMAIN_DATA]["vm"] = {}
-    hass.data[DOMAIN_DATA]["monitored_conditions"] = []
+    if DOMAIN_DATA not in hass.data:
+        hass.data[DOMAIN_DATA] = {}
+    hass.data[DOMAIN_DATA][entry] = {}
+    hass.data[DOMAIN_DATA][entry]["configuration"] = "config_flow"
+    hass.data[DOMAIN_DATA][entry]["vmhost"] = {}
+    hass.data[DOMAIN_DATA][entry]["datastore"] = {}
+    hass.data[DOMAIN_DATA][entry]["license"] = {}
+    hass.data[DOMAIN_DATA][entry]["vm"] = {}
+    hass.data[DOMAIN_DATA][entry]["monitored_conditions"] = []
 
     if config_entry.data["vmhost"]:
-        hass.data[DOMAIN_DATA]["monitored_conditions"].append("vmhost")
+        hass.data[DOMAIN_DATA][entry]["monitored_conditions"].append("vmhost")
         config[DOMAIN]["monitored_conditions"].append("vmhost")
     if config_entry.data["datastore"]:
-        hass.data[DOMAIN_DATA]["monitored_conditions"].append("datastore")
+        hass.data[DOMAIN_DATA][entry]["monitored_conditions"].append("datastore")
         config[DOMAIN]["monitored_conditions"].append("datastore")
     if config_entry.data["license"]:
-        hass.data[DOMAIN_DATA]["monitored_conditions"].append("license")
+        hass.data[DOMAIN_DATA][entry]["monitored_conditions"].append("license")
         config[DOMAIN]["monitored_conditions"].append("license")
     if config_entry.data["vm"]:
-        hass.data[DOMAIN_DATA]["monitored_conditions"].append("vm")
+        hass.data[DOMAIN_DATA][entry]["monitored_conditions"].append("vm")
         config[DOMAIN]["monitored_conditions"].append("vm")
 
     if not config_entry.options:
@@ -212,7 +130,7 @@ async def async_setup_entry(hass, config_entry):
 
     # get global config
     _LOGGER.debug("Setting up host %s", config[DOMAIN].get(CONF_HOST))
-    hass.data[DOMAIN_DATA]["client"] = esxiStats(hass, config)
+    hass.data[DOMAIN_DATA][entry]["client"] = esxiStats(hass, config, config_entry)
 
     try:
         conn_details = {
@@ -226,7 +144,7 @@ async def async_setup_entry(hass, config_entry):
 
         # get license type and objects
         lic = check_license(conn.RetrieveContent().licenseManager)
-        await hass.data[DOMAIN_DATA]["client"].update_data()
+        await hass.data[DOMAIN_DATA][entry]["client"].update_data()
     except Exception as exception:  # pylint: disable=broad-except
         _LOGGER.error(exception)
         raise ConfigEntryNotReady
@@ -241,7 +159,7 @@ async def async_setup_entry(hass, config_entry):
 
     # if lisense allows API write, register services
     if lic:
-        await add_services(hass, conn_details)
+        await add_services(hass)
     else:
         _LOGGER.info(
             "Service calls are disabled - %s doesn't have a supported license",
@@ -254,7 +172,7 @@ async def async_setup_entry(hass, config_entry):
 class esxiStats:
     """This class handles communication, services, and stores the data."""
 
-    def __init__(self, hass, config):
+    def __init__(self, hass, config, config_entry=None):
         """Initialize the class."""
         self.hass = hass
         self.host = config[DOMAIN].get(CONF_HOST)
@@ -263,6 +181,7 @@ class esxiStats:
         self.port = config[DOMAIN].get(CONF_PORT)
         self.ssl = config[DOMAIN].get(CONF_VERIFY_SSL)
         self.monitored_conditions = config[DOMAIN].get(CONF_MONITORED_CONDITIONS)
+        self.entry = config_entry.entry_id
 
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
     async def update_data(self):
@@ -290,7 +209,7 @@ class esxiStats:
                     host_name = esxi_host.summary.config.name.replace(" ", "_").lower()
 
                     _LOGGER.debug("Getting stats for vmhost: %s", host_name)
-                    self.hass.data[DOMAIN_DATA]["vmhost"][
+                    self.hass.data[DOMAIN_DATA][self.entry]["vmhost"][
                         host_name
                     ] = await get_host_info(esxi_host)
 
@@ -308,7 +227,7 @@ class esxiStats:
                     ds_name = ds.summary.name.replace(" ", "_").lower()
 
                     _LOGGER.debug("Getting stats for datastore: %s", ds_name)
-                    self.hass.data[DOMAIN_DATA]["datastore"][
+                    self.hass.data[DOMAIN_DATA][self.entry]["datastore"][
                         ds_name
                     ] = await get_datastore_info(ds)
 
@@ -319,7 +238,7 @@ class esxiStats:
 
                 for lic in lic_list.licenses:
                     _LOGGER.debug("Getting stats for licenses")
-                    self.hass.data[DOMAIN_DATA]["license"][
+                    self.hass.data[DOMAIN_DATA][self.entry]["license"][
                         _count
                     ] = await get_license_info(lic)
                     _count += 1
@@ -338,7 +257,9 @@ class esxiStats:
                     vm_name = vm.summary.config.name.replace(" ", "_").lower()
 
                     _LOGGER.debug("Getting stats for vm: %s", vm_name)
-                    self.hass.data[DOMAIN_DATA]["vm"][vm_name] = await get_vm_info(vm)
+                    self.hass.data[DOMAIN_DATA][self.entry]["vm"][
+                        vm_name
+                    ] = await get_vm_info(vm)
         finally:
             esx_disconnect(conn)
 
@@ -361,24 +282,42 @@ async def check_files(hass):
     return returnvalue
 
 
-async def add_services(hass, conn_details):
+async def add_services(hass):
     """Add ESXi Stats services."""
-    # vm power service
+    # Check that a host exists in HomeAssistant and get its credentials
+    async def get_conn_details(host):
+        for _entry in hass.config_entries.async_entries(DOMAIN):
+            if host == _entry.data.get("host"):
+                return {
+                    "host": _entry.data.get("host"),
+                    "user": _entry.data.get("username"),
+                    "pwd": _entry.data.get("password"),
+                    "port": _entry.data.get("port"),
+                    "ssl": _entry.data.get("verify_ssl"),
+                }
+            else:
+                continue
+
+        raise ValueError("Host is not configured in HomeAssistant")
+
+    # VM power service
     async def vm_power(call):
+        host = call.data["host"]
         vm = call.data["vm"]
         cmnd = call.data["command"]
 
         if cmnd in AVAILABLE_CMND_VM_POWER:
             try:
-                hass.async_create_task(vm_pwr(hass, vm, cmnd, conn_details))
-                # await vm_pwr(vm, cmnd, conn_details)
+                conn_details = await get_conn_details(host)
+                hass.async_create_task(vm_pwr(hass, host, vm, cmnd, conn_details))
             except Exception as e:
                 _LOGGER.error(str(e))
         else:
             _LOGGER.error("vm_power: '%s' is not a supported command", cmnd)
 
-    # snapshot create service
+    # Snapshot create service
     async def snap_create(call):
+        host = call.data["host"]
         vm = call.data["vm"]
         memory = False
         quiesce = False
@@ -396,26 +335,33 @@ async def add_services(hass, conn_details):
             quiesce = call.data["quiesce"]
 
         try:
+            conn_details = await get_conn_details(host)
             hass.async_create_task(
-                vm_snap_take(hass, vm, name, desc, memory, quiesce, conn_details)
+                vm_snap_take(hass, host, vm, name, desc, memory, quiesce, conn_details)
             )
         except Exception as e:
             _LOGGER.error(str(e))
 
-    # snapshot remove service
+    # Snapshot remove service
     async def snap_remove(call):
+        host = call.data["host"]
         vm = call.data["vm"]
         cmnd = call.data["command"]
 
         if cmnd in AVAILABLE_CMND_VM_SNAP:
             try:
-                hass.async_create_task(vm_snap_remove(hass, vm, cmnd, conn_details))
+                conn_details = await get_conn_details(host)
+                hass.async_create_task(
+                    vm_snap_remove(hass, host, vm, cmnd, conn_details)
+                )
             except Exception as e:
                 _LOGGER.error(str(e))
         else:
             _LOGGER.error("snap_remove: '%s' is not a supported command", cmnd)
 
-    hass.services.async_register(DOMAIN, "vm_power", vm_power, schema=VM_PWR_SCHEMA)
+    hass.services.async_register(
+        DOMAIN, "vm_power", vm_power, schema=VM_PWR_SCHEMA
+    )
     hass.services.async_register(
         DOMAIN, "create_snapshot", snap_create, schema=SNAP_CREATE_SCHEMA
     )

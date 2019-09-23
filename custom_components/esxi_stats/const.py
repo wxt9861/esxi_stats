@@ -50,6 +50,7 @@ DEFAULT_OPTIONS = {
 MAP_TO_MEASUREMENT = {
     "cpu_count": "CPUs",
     "cpuusage_ghz": "CPU Use (GHz)",
+    "expiration_days": "Expiration (D)",
     "free_space_gb": "Free (GB)",
     "memusage_gb": "Mem Use (GB)",
     "total_space_gb": "Total (GB)",
@@ -61,5 +62,6 @@ MAP_TO_MEASUREMENT = {
 SUPPORTED_PRODUCTS = ["VMware ESX Server", "VMware VirtualCenter Server"]
 AVAILABLE_CMND_VM_POWER = ["on", "off", "reboot", "reset", "shutdown", "suspend"]
 AVAILABLE_CMND_VM_SNAP = ["all", "first", "last"]
+HOST = "host"
 VM = "vm"
 COMMAND = "command"

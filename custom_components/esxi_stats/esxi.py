@@ -85,7 +85,7 @@ async def get_license_info(lic):
         "name": lic.name,
         "status": status,
         "product": product,
-        "expiration": expiration,
+        "expiration_days": expiration,
     }
 
     _LOGGER.debug(license_data)
@@ -271,7 +271,7 @@ def listSnapshots(snapshots, tree=False):
     return snapshot_data
 
 
-async def vm_pwr(hass, target_vm, target_cmnd, conn_details):
+async def vm_pwr(hass, target_host, target_vm, target_cmnd, conn_details):
     """VM power commands."""
     conn = await esx_connect(**conn_details)
     content = conn.RetrieveContent()
@@ -309,7 +309,11 @@ async def vm_pwr(hass, target_vm, target_cmnd, conn_details):
 
             break
         else:
-            _LOGGER.info("VM %s not found. Make sure the name is correct", target_vm)
+            _LOGGER.info(
+                "VM %s on host %s not found. Make sure the name is correct",
+                target_vm,
+                target_host,
+            )
     except vmodl.MethodFault as e:
         _LOGGER.info(e.msg)
     except Exception as e:
@@ -320,7 +324,9 @@ async def vm_pwr(hass, target_vm, target_cmnd, conn_details):
     return True
 
 
-async def vm_snap_take(hass, target_vm, snap_name, desc, memory, quiesce, conn_details):
+async def vm_snap_take(
+    hass, target_host, target_vm, snap_name, desc, memory, quiesce, conn_details
+):
     """Take Snapshot commands."""
     conn = await esx_connect(**conn_details)
     content = conn.RetrieveContent()
@@ -344,7 +350,11 @@ async def vm_snap_take(hass, target_vm, snap_name, desc, memory, quiesce, conn_d
 
             break
         else:
-            _LOGGER.info("VM %s not found. Make sure the name is correct", target_vm)
+            _LOGGER.info(
+                "VM %s on host %s not found. Make sure the name is correct",
+                target_vm,
+                target_host,
+            )
     except vmodl.MethodFault as e:
         _LOGGER.info(e.msg)
     except Exception as e:
@@ -355,7 +365,7 @@ async def vm_snap_take(hass, target_vm, snap_name, desc, memory, quiesce, conn_d
     return True
 
 
-async def vm_snap_remove(hass, target_vm, target_cmnd, conn_details):
+async def vm_snap_remove(hass, target_host, target_vm, target_cmnd, conn_details):
     """Remove Snapshot commands."""
     conn = await esx_connect(**conn_details)
     content = conn.RetrieveContent()
@@ -400,7 +410,11 @@ async def vm_snap_remove(hass, target_vm, target_cmnd, conn_details):
 
             break
         else:
-            _LOGGER.info("VM %s not found. Make sure the name is correct", target_vm)
+            _LOGGER.info(
+                "VM %s on host %s not found. Make sure the name is correct",
+                target_vm,
+                target_host,
+            )
     except vmodl.MethodFault as e:
         _LOGGER.info(e.msg)
     except Exception as e:
