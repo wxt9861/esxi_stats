@@ -98,11 +98,16 @@ ESXi Stats can be configured via Integrations page or in yaml. While yaml is cur
 3. Find and click on ESXi Stats
 4. Enter required information/select wanted stats and click Submit
 
-When configured via Integrations UI, you can control what state each sensor type display. For example, you can set VM sensors to display their uptime as their sensor state. To change the state of each sensor type:
+You can control what attribute key each sensor type displays as a state. For example, you can set VM sensors to display their uptime as their sensor state. To change the state of each sensor type:
+
+![Options Example](./examples/options_example.png)
 
 1. From Home Assistant UI go to Configuration > Integrtions > ESXi Stats integation
 2. In the upper right corner click on the gears icon to bring up the options menu
 3. Enter the attribute you want displayed as the state
+4. Restart HASS
+
+
 
 ### configuration.yaml examples
 
@@ -151,7 +156,7 @@ The following serivces are available:
 - **esxi_stats.vm_power** - on,off,reboot,reset,shutdown,suspend a VM
 
   ```json
-  { "vm": "vm_name", "command": "suspend" }
+  { "host":"host/vCenter", "vm": "vm_name", "command": "suspend" }
   ```
 
 - **esxi_stats.create_snapshot** - create a VM snapshot
@@ -160,7 +165,7 @@ The following serivces are available:
   - Minimum required parameters are **vm** and **name**
 
   ```json
-  { "vm": "vm_name", "name": "snapshot before upgrde" }
+  { "host":"host/vCenter", "vm": "vm_name", "name": "snapshot before upgrde" }
   ```
 
   - Optional parameters are **description**, **memory**, and **quiesce**
@@ -168,6 +173,7 @@ The following serivces are available:
 
   ```json
   {
+    "host": "host/vCenter",
     "vm": "vm_name",
     "name": "snapshot before upgrade",
     "memory": true,
@@ -180,7 +186,7 @@ The following serivces are available:
   - This is a work in progress, once I figure out how to better handle multiple snapshots, only basic options are available
 
   ```json
-  { "vm": "vm_name", "command": "all" }
+  { "host": "host/vCenter", "vm": "vm_name", "command": "all" }
   ```
 
 Some commands provide status (ex. suspending a VM or resuming a VM), while other commands are fire and forget (ex. reboot/shutdown). Commands that provide status will output info messages to logger and create a persistent notification when they are complete.
@@ -194,8 +200,8 @@ A custom lovelace card would be ideal, but for now I explored existing available
 
 - You can break out the data into seperate sensors
   - See home-assistant documentation
-- Use [Custom list-card](https://github.com/custom-cards/list-card)
-  - Example lovelace yaml can be found [here](examples/list-card-example.yaml)
+- Use [Custom flex-table-card](https://github.com/custom-cards/flex-table-card)
+  - Example lovelace yaml can be found [here](examples/flex-table-card-example.yaml)
   - ![Datastore List Example](./examples/datastore_list_example.png)
 - Use [Custom button-card](https://github.com/custom-cards/button-card)
   - Example lovelace yaml can be found [here](examples/button-card-example.yaml)

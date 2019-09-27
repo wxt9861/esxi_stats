@@ -141,6 +141,7 @@ async def async_setup_entry(hass, config_entry):
             "ssl": config[DOMAIN]["verify_ssl"],
         }
         conn = await esx_connect(**conn_details)
+        _LOGGER.debug("Product Line: %s", conn.content.about.productLineId)
 
         # get license type and objects
         lic = check_license(conn.RetrieveContent().licenseManager)
@@ -186,6 +187,7 @@ class esxiStats:
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
     async def update_data(self):
         """Update data."""
+        conn = None
         try:
             # connect and get data from host
             conn = await esx_connect(
@@ -235,12 +237,11 @@ class esxiStats:
             if "license" in self.monitored_conditions:
                 lic_list = content.licenseManager
                 _count = 1
-
                 for lic in lic_list.licenses:
                     _LOGGER.debug("Getting stats for licenses")
                     self.hass.data[DOMAIN_DATA][self.entry]["license"][
                         _count
-                    ] = await get_license_info(lic)
+                    ] = await get_license_info(lic, self.host)
                     _count += 1
 
             # get vm stats
@@ -261,7 +262,8 @@ class esxiStats:
                         vm_name
                     ] = await get_vm_info(vm)
         finally:
-            esx_disconnect(conn)
+            if conn is not None:
+                esx_disconnect(conn)
 
 
 async def check_files(hass):

@@ -57,7 +57,7 @@ def check_license(lic):
                             return True
 
 
-async def get_license_info(lic):
+async def get_license_info(lic, host):
     """Get license information."""
     expiration = "n/a"
     product = "n/a"
@@ -86,6 +86,7 @@ async def get_license_info(lic):
         "status": status,
         "product": product,
         "expiration_days": expiration,
+        "host": host
     }
 
     _LOGGER.debug(license_data)
@@ -96,7 +97,6 @@ async def get_license_info(lic):
 async def get_host_info(host):
     """Get host information."""
     host_summary = host.summary
-    host_network = host.config.network
     host_name = host_summary.config.name.replace(" ", "_").lower()
     host_version = host_summary.config.product.version
     host_uptime = round(host_summary.quickStats.uptime / 3600, 1)
@@ -108,29 +108,6 @@ async def get_host_info(host):
     host_mem_usage = round(host_summary.quickStats.overallMemoryUsage / 1024, 2)
     host_vms = len(host.vm)
 
-    # Get network adapter info
-    network_adapters = {}
-    for nic in host_network.pnic:
-        if nic.spec.linkSpeed is not None:
-            link_status = nic.spec.linkSpeed.speedMb
-        elif nic.linkSpeed is not None:
-            link_status = nic.linkSpeed.speedMb
-        else:
-            link_status = "Link Down"
-
-        network_adapter = {nic.device: link_status}
-        network_adapters.update(network_adapter)
-
-    # Get vSwitch/vDS(maybe?) info
-    switches = {}
-    for network in host_network.vswitch:
-        portgroups = []
-        for portgroup in network.portgroup:
-            portgroups.append(portgroup.split("PortGroup-", 1)[1])
-
-        switch = {network.name: portgroups}
-        switches.update(switch)
-
     host_data = {
         "name": host_name,
         "version": host_version,
@@ -139,8 +116,6 @@ async def get_host_info(host):
         "cpuusage_ghz": host_cpu_usage,
         "memtotal_gb": host_mem_total,
         "memusage_gb": host_mem_usage,
-        "switches": switches,
-        "network_adapters": network_adapters,
         "vms": host_vms,
     }
 
@@ -173,13 +148,24 @@ async def get_datastore_info(ds):
 
 async def get_vm_info(vm):
     """Get VM information."""
+    vm_conf = vm.configStatus
     vm_sum = vm.summary
     vm_run = vm.runtime
     vm_snap = vm.snapshot
 
     vm_name = vm_sum.config.name.replace(" ", "_").lower()
-    vm_used_space = round(vm_sum.storage.committed / 1073741824, 2)
+
+    # If a VM configuration is in INVALID state, return Inalid status
+    if vm_conf == "red":
+        vm_data = {
+            "name": vm_name,
+            "status": "Invalid"
+        }
+        _LOGGER.debug(vm_data)
+        return vm_data
+
     vm_tools_status = vm_sum.guest.toolsStatus
+    vm_used_space = round(vm_sum.storage.committed / 1073741824, 2)
 
     # if snapshots present, get number of snapshots
     if vm_snap is not None:
@@ -221,6 +207,12 @@ async def get_vm_info(vm):
             vm_uptime = "n/a"
             _LOGGER.debug("Unable to return uptime for %s", vm_name)
 
+        if vm_sum.guest.ipAddress:
+            vm_ip = vm_sum.guest.ipAddress
+        else:
+            vm_ip = "n/a"
+            _LOGGER.debug("Unable to return VM IP address for %s", vm_name)
+
         if vm_sum.guest.guestFullName:
             vm_guest_os = vm_sum.guest.guestFullName
         else:
@@ -231,6 +223,7 @@ async def get_vm_info(vm):
     else:
         vm_cpu_usage = "n/a"
         vm_mem_usage = "n/a"
+        vm_ip = "n/a"
         vm_uptime = "n/a"
         vm_guest_os = vm_sum.config.guestFullName
 
@@ -246,6 +239,7 @@ async def get_vm_info(vm):
         "used_space_gb": vm_used_space,
         "tools_status": vm_tools_status,
         "guest_os": vm_guest_os,
+        "guest_ip": vm_ip,
         "snapshots": vm_snapshots,
     }
 

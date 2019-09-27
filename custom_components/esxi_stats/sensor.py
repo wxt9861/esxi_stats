@@ -17,14 +17,14 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_platform(
     hass, config, async_add_entities, discovery_info=None
 ):  # pylint: disable=unused-argument
-    """Setup sensor platform."""
+    """Set up sensor platform."""
     for cond in hass.data[DOMAIN_DATA]["monitored_conditions"]:
         for obj in hass.data[DOMAIN_DATA][cond]:
             async_add_entities([esxiSensor(hass, discovery_info, cond, obj)], True)
 
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
-    """Setup sensor platform."""
+    """Set up sensor platform."""
     config = config_entry.data
     entry_id = config_entry.entry_id
     for cond in hass.data[DOMAIN_DATA][entry_id]["monitored_conditions"]:
@@ -40,7 +40,7 @@ class esxiSensor(Entity):
         self.hass = hass
         self.attr = {}
         self._config_entry = config_entry
-        self.entry_id = config_entry.entry_id
+        self._entry_id = config_entry.entry_id
         self._state = None
         self.config = config
         # If configured via yaml, set options to defaults
@@ -51,12 +51,11 @@ class esxiSensor(Entity):
             self._options = DEFAULT_OPTIONS
         self._cond = cond
         self._obj = obj
-        self._name = self._obj
 
     async def async_update(self):
         """Update the sensor."""
-        await self.hass.data[DOMAIN_DATA][self.entry_id]["client"].update_data()
-        self._data = self.hass.data[DOMAIN_DATA][self.entry_id][self._cond][self._obj]
+        await self.hass.data[DOMAIN_DATA][self._entry_id]["client"].update_data()
+        self._data = self.hass.data[DOMAIN_DATA][self._entry_id][self._cond][self._obj]
 
         # Set state and measurement
         if self._options[self._cond] not in self._data.keys():
@@ -76,8 +75,8 @@ class esxiSensor(Entity):
     @property
     def unique_id(self):
         """Return a unique ID to use for this sensor."""
-        return "{}_52446d23-5e54-4525-8018-56da195d276f_{}_{}".format(
-            self.config["host"].replace(".", "_"), self._cond, self._obj
+        return "{}_{}_{}_{}".format(
+            self.config["host"].replace(".", "_"), self._entry_id, self._cond, self._obj
         )
 
     @property
@@ -88,7 +87,7 @@ class esxiSensor(Entity):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return "{} {} {}".format(DEFAULT_NAME, self._cond, self._name)
+        return "{} {} {}".format(DEFAULT_NAME, self._cond, self._obj)
 
     @property
     def state(self):
@@ -120,8 +119,8 @@ class esxiSensor(Entity):
 
 
 def measureFormat(input):
-    """Returns measurement in readable form"""
+    """Return measurement in readable form."""
     if input in MAP_TO_MEASUREMENT.keys():
-        return (MAP_TO_MEASUREMENT[input])
+        return MAP_TO_MEASUREMENT[input]
     else:
         return capwords(input.replace("_", " "))
