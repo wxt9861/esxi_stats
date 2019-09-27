@@ -4,6 +4,7 @@
 
 - [Installation](#installation)
 - [Configuration](#configuration-options)
+- [Options](#sensor-states)
 - [Service Calls](#service-calls)
 - [Presenting Data in Home Assistant](#presenting-data-in-home-assistant)
 
@@ -22,9 +23,7 @@ The component pulls the following information:
   - host cpu usage in MHz
   - host memory total in GB
   - host memory usage in GB
-  - host switches and portgroups
-  - host network devices and their link status (if connected shows speed, if disconnected shows Link Down)
-  - number of VMs on host
+  - Number of VMs on host
 
 - Datastores (sensor.esxi_stats_datastores)
 
@@ -32,8 +31,8 @@ The component pulls the following information:
   - Datastore type
   - Free space in GB
   - Total space in GB
-  - number of connected hosts
-  - number of residing VMs
+  - Number of connected hosts
+  - Number of residing VMs
 
 - Liceses (sensor.esxi_stats_licenses)
 
@@ -41,6 +40,7 @@ The component pulls the following information:
   - License Name
   - Product Type
   - Expiration (in days, if any)
+  - Host (to which this license is attached)
 
 - Virtual Machines (sensor.esxi_stats_vms)
   - VM name
@@ -54,7 +54,8 @@ The component pulls the following information:
   - Storage used in GB
   - VM Tools status (tools running, not running, not install, etc)
   - VM guest OS
-  - number of snapshots
+  - VM guest IP address (if VM has multiple, only primary will be shown)
+  - Number of snapshots
 
 Sensor Example
 ![Datastore Sensor Example](examples/datastore_sensor_example.png)
@@ -87,52 +88,28 @@ Sensor Example
 | `username`             | `string`  | `True`   | None    | Username to ESXi host or vCenter                                                                                                                                                                                                                                                                                |
 | `password`             | `string`  | `True`   | None    | Password to ESXi host or vCenter                                                                                                                                                                                                                                                                                |
 | `verify_ssl`           | `boolean` | False    | False   | Leave at default if your ESXi host or vCenter is using a self-signed certificate (most likely scneario). Change to **true** if you replaced a self-signed certificate. If you're using a self-signed cert and set this to True, the component will not be able to establish a connection with the host/vcenter. |
-| `monitored_conditions` | `list`    | False    | vmhost  | What information do you want to get from the host/vcenter. Available options are **vmhost**, **datastore**, **license**, and **vm**                                                                                                                                                                             |
+| `monitored_conditions` | `list`    | False    | all  | What information do you want to get from the host/vcenter. Available options are **vmhost**, **datastore**, **license**, and **vm**                                                                                                                                                                             |
 
 ESXi Stats can be configured via Integrations page or in yaml. While yaml is currently allowed, support is likely to be dropped in the future releases.
 
-### Integration UI - This is the preferred method of configuration
+### Integration UI
 
 1. From Home Assistant UI go to Confinguration > Integrations
 2. Click the orange + icon at the bottom right to bring up new integration window
 3. Find and click on ESXi Stats
-4. Enter required information/select wanted stats and click Submit
+4. Enter required information and click Submit
 
-You can control what attribute key each sensor type displays as a state. For example, you can set VM sensors to display their uptime as their sensor state. To change the state of each sensor type:
-
-![Options Example](./examples/options_example.png)
+## Sensor States
+You can control what attribute key each sensor type displays as a state. For example, you can set VM sensors to display their uptime as their sensor state.
+To change the state of each sensor type:
 
 1. From Home Assistant UI go to Configuration > Integrtions > ESXi Stats integation
 2. In the upper right corner click on the gears icon to bring up the options menu
 3. Enter the attribute you want displayed as the state
 4. Restart HASS
 
+![Options Example](./examples/options_example.png)
 
-
-### configuration.yaml examples
-
-The below configuration will get only host stats.
-
-```yaml
-esxi_stats:
-  host: <ip or fqdn here>
-  username: <username>
-  password: <password>
-```
-
-The below configuartion will get host, datastore, license, and vm stats.
-
-```yaml
-esxi_stats:
-  host: <ip or fqdn here>
-  username: <username>
-  password: <password>
-  monitored_conditions:
-    - vmhost
-    - vm
-    - datastore
-    - license
-```
 
 To enable debug
 

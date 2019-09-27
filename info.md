@@ -4,11 +4,16 @@
 
 {% endif %}
 
-# **Breaking Change in 0.4 if configured via Integration UI**
+# **Breaking Changes in 0.5**
+Each ESXi related objects (vm, datastore, etc) are now their own sensors, this will require you to change lovelace configuration and any template sensors
 
-Due to addition of licenses sensor, the platform will fail to load after the reboot.
+If configured via Integrations UI, follow these steps
+1. Update the component
+2. Restart HASS - at this point, the component will fail to load. That's ok
+3. Once HASS is back, go to Configuration > Integrations > ESXi Stats integrtion and remove it
+4. Add the Integrations back
 
-To fix - 1. restart Home Assistant 2. remove and re-add the integration from the Integrations UI
+YAML configuration is no longer supported, re-configure via the Integrations UI
 
 # Configuration options
 
@@ -17,10 +22,10 @@ To fix - 1. restart Home Assistant 2. remove and re-add the integration from the
 | `host`                 | `string`  | `True`   | None    | ESXi host or vCenter                                                                                                                                                                                                                                                                                            |
 | `username`             | `string`  | `True`   | None    | Username to ESXi host or vCenter                                                                                                                                                                                                                                                                                |
 | `password`             | `string`  | `True`   | None    | Password to ESXi host or vCenter                                                                                                                                                                                                                                                                                |
-| `verify_ssl`           | `boolean` | False    | False   | Leave at default if your ESXi host or vCenter is using a self-signed certificate (most likely scneario). Change to **true** if you replaced a self-signed certificate. If you're using a self-signed cert and set this to True, the component will not be able to establish a connection with the host/vcenter. |
-| `monitored_conditions` | `list`    | False    | hosts   | What information do you want to get from the host/vcenter. Available options are **hosts**, **datastores**, **licenses**, and **vms**                                                                                                                                                                           |
+| `verify_ssl`           | `boolean` | False    | False   | Leave at default if your ESXi host or vCenter is using a self-signed certificate (most likely scneario). Change to **true** if you replaced a self-signed certificate. If you're using a self-signed cert and set this to True, the component will not be able to establish a connection with the host/vcenter |
+| `monitored_conditions` | `list`    | False    | all   | What information do you want to get from the host/vcenter. Available options are **vmhost**, **datastore**, **license**, and **vm**                                                                                                                                                                           |
 
-ESXi Stats can be configured via Integrations page or in yaml
+ESXi Stats can be configured via Integrations UI
 
 ## Integration page
 
@@ -28,31 +33,6 @@ ESXi Stats can be configured via Integrations page or in yaml
 2. Click the orange + icon at the bottom right to bring up new integration window
 3. Find and click on ESXi Stats
 4. Enter required information/select wanted stats and click Submit
-
-## configuration.yaml examples
-
-The below configuration will get only host stats.
-
-```yaml
-esxi_stats:
-  host: <ip or fqdn here>
-  username: <username>
-  password: <password>
-```
-
-The below configuartion will get host, datastore, license, and vm stats.
-
-```yaml
-esxi_stats:
-  host: <ip or fqdn here>
-  username: <username>
-  password: <password>
-  monitored_conditions:
-    - hosts
-    - vms
-    - datastores
-    - licenses
-```
 
 To enable debug
 
