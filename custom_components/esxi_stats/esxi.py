@@ -189,7 +189,7 @@ async def get_vm_info(vm):
         # check if stats exist and set values, otherwise return "n/a"
         if vm_sum.quickStats.overallCpuUsage and vm_run.maxCpuUsage:
             vm_cpu_usage = round(
-                ((vm_sum.quickStats.overallCpuUsage / vm_run.maxCpuUsage) * 100), 0
+                ((vm_sum.quickStats.overallCpuUsage / vm_run.maxCpuUsage) * 100), 2
             )
         else:
             vm_cpu_usage = "n/a"
