@@ -4,12 +4,13 @@
 
 - [Installation](#installation)
 - [Configuration](#configuration-options)
+- [Options](#sensor-states)
 - [Service Calls](#service-calls)
 - [Presenting Data in Home Assistant](#presenting-data-in-home-assistant)
 
 ESXi component for Home Assistant
-This component will gather stats from an ESXi server or vCenter. Information gathered can be Host info, Datastore info and VM info. Information is gathered every 60 seconds.
-A sensor is created for each monitored condition. If you're monitoring hosts, datastores, and vms, 3 sensors are createad. Stats are stored as sensor attributes and can be retreieved using various tools available for Home Assistant.
+This component will gather stats from an ESXi server or vCenter. Information gathered can be Host, Datastore, License, and VM info. Information is gathered every 60 seconds.
+A sensor is created for each discovered monitored object (since release 0.5.0). The sensor state can be changed to suit your needs.
 
 The component pulls the following information:
 
@@ -22,6 +23,7 @@ The component pulls the following information:
   - host cpu usage in MHz
   - host memory total in GB
   - host memory usage in GB
+  - Number of VMs on host
 
 - Datastores (sensor.esxi_stats_datastores)
 
@@ -29,16 +31,16 @@ The component pulls the following information:
   - Datastore type
   - Free space in GB
   - Total space in GB
-  - number of connected hosts
-  - number of residing VMs
+  - Number of connected hosts
+  - Number of residing VMs
 
 - Liceses (sensor.esxi_stats_licenses)
 
+  - License Status (OK, Expiring Soon if expiration is under 30 days, Expired)
   - License Name
   - Product Type
   - Expiration (in days, if any)
-
-  Sensor status will output OK, unless there are licenses expiring within 30 days
+  - Host (to which this license is attached)
 
 - Virtual Machines (sensor.esxi_stats_vms)
   - VM name
@@ -52,10 +54,11 @@ The component pulls the following information:
   - Storage used in GB
   - VM Tools status (tools running, not running, not install, etc)
   - VM guest OS
-  - number of snapshots
+  - VM guest IP address (if VM has multiple, only primary will be shown)
+  - Number of snapshots
 
 Sensor Example
-![Host Sensor Example](examples/host_sensor_example.png)
+![Datastore Sensor Example](examples/datastore_sensor_example.png)
 
 ## Installation
 
@@ -85,41 +88,28 @@ Sensor Example
 | `username`             | `string`  | `True`   | None    | Username to ESXi host or vCenter                                                                                                                                                                                                                                                                                |
 | `password`             | `string`  | `True`   | None    | Password to ESXi host or vCenter                                                                                                                                                                                                                                                                                |
 | `verify_ssl`           | `boolean` | False    | False   | Leave at default if your ESXi host or vCenter is using a self-signed certificate (most likely scneario). Change to **true** if you replaced a self-signed certificate. If you're using a self-signed cert and set this to True, the component will not be able to establish a connection with the host/vcenter. |
-| `monitored_conditions` | `list`    | False    | hosts   | What information do you want to get from the host/vcenter. Available options are **hosts**, **datastores**, **licenses**, and **vms**                                                                                                                                                                           |
+| `monitored_conditions` | `list`    | False    | all  | What information do you want to get from the host/vcenter. Available options are **vmhost**, **datastore**, **license**, and **vm**                                                                                                                                                                             |
 
-ESXi Stats can be configured via Integrations page or in yaml
+ESXi Stats can be configured via Integrations page or in yaml. While yaml is currently allowed, support is likely to be dropped in the future releases.
 
-### Integration page
+### Integration UI
 
 1. From Home Assistant UI go to Confinguration > Integrations
 2. Click the orange + icon at the bottom right to bring up new integration window
 3. Find and click on ESXi Stats
-4. Enter required information/select wanted stats and click Submit
+4. Enter required information and click Submit
 
-### configuration.yaml examples
+## Sensor States
+You can control what attribute key each sensor type displays as a state. For example, you can set VM sensors to display their uptime as their sensor state.
+To change the state of each sensor type:
 
-The below configuration will get only host stats.
+1. From Home Assistant UI go to Configuration > Integrtions > ESXi Stats integation
+2. In the upper right corner click on the gears icon to bring up the options menu
+3. Enter the attribute you want displayed as the state
+4. Restart HASS
 
-```yaml
-esxi_stats:
-  host: <ip or fqdn here>
-  username: <username>
-  password: <password>
-```
+![Options Example](./examples/options_example.png)
 
-The below configuartion will get host, datastore, license, and vm stats.
-
-```yaml
-esxi_stats:
-  host: <ip or fqdn here>
-  username: <username>
-  password: <password>
-  monitored_conditions:
-    - hosts
-    - vms
-    - datastores
-    - licenses
-```
 
 To enable debug
 
@@ -143,7 +133,7 @@ The following serivces are available:
 - **esxi_stats.vm_power** - on,off,reboot,reset,shutdown,suspend a VM
 
   ```json
-  { "vm": "vm_name", "command": "suspend" }
+  { "host":"host/vCenter", "vm": "vm_name", "command": "suspend" }
   ```
 
 - **esxi_stats.create_snapshot** - create a VM snapshot
@@ -152,7 +142,7 @@ The following serivces are available:
   - Minimum required parameters are **vm** and **name**
 
   ```json
-  { "vm": "vm_name", "name": "snapshot before upgrde" }
+  { "host":"host/vCenter", "vm": "vm_name", "name": "snapshot before upgrde" }
   ```
 
   - Optional parameters are **description**, **memory**, and **quiesce**
@@ -160,6 +150,7 @@ The following serivces are available:
 
   ```json
   {
+    "host": "host/vCenter",
     "vm": "vm_name",
     "name": "snapshot before upgrade",
     "memory": true,
@@ -172,7 +163,7 @@ The following serivces are available:
   - This is a work in progress, once I figure out how to better handle multiple snapshots, only basic options are available
 
   ```json
-  { "vm": "vm_name", "command": "all" }
+  { "host": "host/vCenter", "vm": "vm_name", "command": "all" }
   ```
 
 Some commands provide status (ex. suspending a VM or resuming a VM), while other commands are fire and forget (ex. reboot/shutdown). Commands that provide status will output info messages to logger and create a persistent notification when they are complete.
@@ -186,8 +177,8 @@ A custom lovelace card would be ideal, but for now I explored existing available
 
 - You can break out the data into seperate sensors
   - See home-assistant documentation
-- Use [Custom list-card](https://github.com/custom-cards/list-card)
-  - Example lovelace yaml can be found [here](examples/list-card-example.yaml)
+- Use [Custom flex-table-card](https://github.com/custom-cards/flex-table-card)
+  - Example lovelace yaml can be found [here](examples/flex-table-card-example.yaml)
   - ![Datastore List Example](./examples/datastore_list_example.png)
 - Use [Custom button-card](https://github.com/custom-cards/button-card)
   - Example lovelace yaml can be found [here](examples/button-card-example.yaml)

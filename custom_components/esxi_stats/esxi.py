@@ -57,19 +57,37 @@ def check_license(lic):
                             return True
 
 
-async def get_license_info(lic):
+async def get_license_info(lic, host):
     """Get license information."""
     expiration = "n/a"
     product = "n/a"
+    status = "n/a"
+
     for key in lic.properties:
         if key.key == "ProductName":
             product = key.value
         if key.key == "count_disabled":
             expiration = "never"
         if key.key == "expirationHours":
-            expiration = round((key.value / 24), 1)
+            expiration = round((key.value / 24))
 
-    license_data = {"name": lic.name, "product": product, "expiration": expiration}
+    if isinstance(expiration, int):
+        if expiration > 30:
+            status = "Ok"
+        if expiration <= 30:
+            status = "Expiring Soon"
+        if expiration < 1:
+            status = "expired"
+    else:
+        status = "Ok"
+
+    license_data = {
+        "name": lic.name,
+        "status": status,
+        "product": product,
+        "expiration_days": expiration,
+        "host": host
+    }
 
     _LOGGER.debug(license_data)
 
@@ -88,6 +106,7 @@ async def get_host_info(host):
     host_mem_total = round(host_summary.hardware.memorySize / 1073741824, 2)
     host_cpu_usage = round(host_summary.quickStats.overallCpuUsage / 1000, 1)
     host_mem_usage = round(host_summary.quickStats.overallMemoryUsage / 1024, 2)
+    host_vms = len(host.vm)
 
     host_data = {
         "name": host_name,
@@ -97,6 +116,7 @@ async def get_host_info(host):
         "cpuusage_ghz": host_cpu_usage,
         "memtotal_gb": host_mem_total,
         "memusage_gb": host_mem_usage,
+        "vms": host_vms,
     }
 
     _LOGGER.debug(host_data)
@@ -128,13 +148,24 @@ async def get_datastore_info(ds):
 
 async def get_vm_info(vm):
     """Get VM information."""
+    vm_conf = vm.configStatus
     vm_sum = vm.summary
     vm_run = vm.runtime
     vm_snap = vm.snapshot
 
     vm_name = vm_sum.config.name.replace(" ", "_").lower()
-    vm_used_space = round(vm_sum.storage.committed / 1073741824, 2)
+
+    # If a VM configuration is in INVALID state, return Inalid status
+    if vm_conf == "red":
+        vm_data = {
+            "name": vm_name,
+            "status": "Invalid"
+        }
+        _LOGGER.debug(vm_data)
+        return vm_data
+
     vm_tools_status = vm_sum.guest.toolsStatus
+    vm_used_space = round(vm_sum.storage.committed / 1073741824, 2)
 
     # if snapshots present, get number of snapshots
     if vm_snap is not None:
@@ -158,7 +189,7 @@ async def get_vm_info(vm):
         # check if stats exist and set values, otherwise return "n/a"
         if vm_sum.quickStats.overallCpuUsage and vm_run.maxCpuUsage:
             vm_cpu_usage = round(
-                ((vm_sum.quickStats.overallCpuUsage / vm_run.maxCpuUsage) * 100), 0
+                ((vm_sum.quickStats.overallCpuUsage / vm_run.maxCpuUsage) * 100), 2
             )
         else:
             vm_cpu_usage = "n/a"
@@ -176,6 +207,12 @@ async def get_vm_info(vm):
             vm_uptime = "n/a"
             _LOGGER.debug("Unable to return uptime for %s", vm_name)
 
+        if vm_sum.guest.ipAddress:
+            vm_ip = vm_sum.guest.ipAddress
+        else:
+            vm_ip = "n/a"
+            _LOGGER.debug("Unable to return VM IP address for %s", vm_name)
+
         if vm_sum.guest.guestFullName:
             vm_guest_os = vm_sum.guest.guestFullName
         else:
@@ -186,6 +223,7 @@ async def get_vm_info(vm):
     else:
         vm_cpu_usage = "n/a"
         vm_mem_usage = "n/a"
+        vm_ip = "n/a"
         vm_uptime = "n/a"
         vm_guest_os = vm_sum.config.guestFullName
 
@@ -201,6 +239,7 @@ async def get_vm_info(vm):
         "used_space_gb": vm_used_space,
         "tools_status": vm_tools_status,
         "guest_os": vm_guest_os,
+        "guest_ip": vm_ip,
         "snapshots": vm_snapshots,
     }
 
@@ -226,7 +265,7 @@ def listSnapshots(snapshots, tree=False):
     return snapshot_data
 
 
-async def vm_pwr(hass, target_vm, target_cmnd, conn_details):
+async def vm_pwr(hass, target_host, target_vm, target_cmnd, conn_details):
     """VM power commands."""
     conn = await esx_connect(**conn_details)
     content = conn.RetrieveContent()
@@ -264,7 +303,11 @@ async def vm_pwr(hass, target_vm, target_cmnd, conn_details):
 
             break
         else:
-            _LOGGER.info("VM %s not found. Make sure the name is correct", target_vm)
+            _LOGGER.info(
+                "VM %s on host %s not found. Make sure the name is correct",
+                target_vm,
+                target_host,
+            )
     except vmodl.MethodFault as e:
         _LOGGER.info(e.msg)
     except Exception as e:
@@ -275,7 +318,9 @@ async def vm_pwr(hass, target_vm, target_cmnd, conn_details):
     return True
 
 
-async def vm_snap_take(hass, target_vm, snap_name, desc, memory, quiesce, conn_details):
+async def vm_snap_take(
+    hass, target_host, target_vm, snap_name, desc, memory, quiesce, conn_details
+):
     """Take Snapshot commands."""
     conn = await esx_connect(**conn_details)
     content = conn.RetrieveContent()
@@ -299,7 +344,11 @@ async def vm_snap_take(hass, target_vm, snap_name, desc, memory, quiesce, conn_d
 
             break
         else:
-            _LOGGER.info("VM %s not found. Make sure the name is correct", target_vm)
+            _LOGGER.info(
+                "VM %s on host %s not found. Make sure the name is correct",
+                target_vm,
+                target_host,
+            )
     except vmodl.MethodFault as e:
         _LOGGER.info(e.msg)
     except Exception as e:
@@ -310,7 +359,7 @@ async def vm_snap_take(hass, target_vm, snap_name, desc, memory, quiesce, conn_d
     return True
 
 
-async def vm_snap_remove(hass, target_vm, target_cmnd, conn_details):
+async def vm_snap_remove(hass, target_host, target_vm, target_cmnd, conn_details):
     """Remove Snapshot commands."""
     conn = await esx_connect(**conn_details)
     content = conn.RetrieveContent()
@@ -355,7 +404,11 @@ async def vm_snap_remove(hass, target_vm, target_cmnd, conn_details):
 
             break
         else:
-            _LOGGER.info("VM %s not found. Make sure the name is correct", target_vm)
+            _LOGGER.info(
+                "VM %s on host %s not found. Make sure the name is correct",
+                target_vm,
+                target_host,
+            )
     except vmodl.MethodFault as e:
         _LOGGER.info(e.msg)
     except Exception as e:

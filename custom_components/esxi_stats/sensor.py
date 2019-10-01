@@ -1,8 +1,15 @@
 """Sensor platform for esxi_stats."""
 import logging
+from string import capwords
 from homeassistant.helpers.entity import Entity
 
-from .const import DOMAIN, DOMAIN_DATA, DEFAULT_NAME
+from .const import (
+    DOMAIN,
+    DOMAIN_DATA,
+    DEFAULT_NAME,
+    DEFAULT_OPTIONS,
+    MAP_TO_MEASUREMENT,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -10,84 +17,66 @@ _LOGGER = logging.getLogger(__name__)
 async def async_setup_platform(
     hass, config, async_add_entities, discovery_info=None
 ):  # pylint: disable=unused-argument
-    """Setup sensor platform."""
-    for condition in hass.data[DOMAIN_DATA]["monitored_conditions"]:
-        async_add_entities([esxiSensor(hass, discovery_info, condition)], True)
+    """Set up sensor platform."""
+    for cond in hass.data[DOMAIN_DATA]["monitored_conditions"]:
+        for obj in hass.data[DOMAIN_DATA][cond]:
+            async_add_entities([esxiSensor(hass, discovery_info, cond, obj)], True)
 
 
 async def async_setup_entry(hass, config_entry, async_add_devices):
-    """Setup sensor platform."""
+    """Set up sensor platform."""
     config = config_entry.data
-    for condition in hass.data[DOMAIN_DATA]["monitored_conditions"]:
-        async_add_devices([esxiSensor(hass, config, condition)], True)
+    entry_id = config_entry.entry_id
+    for cond in hass.data[DOMAIN_DATA][entry_id]["monitored_conditions"]:
+        for obj in hass.data[DOMAIN_DATA][entry_id][cond]:
+            async_add_devices([esxiSensor(hass, config, cond, obj, config_entry)], True)
 
 
 class esxiSensor(Entity):
     """ESXi_stats Sensor class."""
 
-    def __init__(self, hass, config, condition, config_entry=None):
+    def __init__(self, hass, config, cond, obj, config_entry=None):
         """Init."""
         self.hass = hass
         self.attr = {}
-        self.config_entry = config_entry
+        self._config_entry = config_entry
+        self._entry_id = config_entry.entry_id
         self._state = None
         self.config = config
-        self._name = config.get("name", DEFAULT_NAME)
-        self._condition = condition
+        # If configured via yaml, set options to defaults
+        # This is likely a temporary fix because yaml config will likely be removed
+        if config_entry is not None:
+            self._options = self._config_entry.options
+        else:
+            self._options = DEFAULT_OPTIONS
+        self._cond = cond
+        self._obj = obj
 
     async def async_update(self):
         """Update the sensor."""
-        await self.hass.data[DOMAIN_DATA]["client"].update_data()
+        await self.hass.data[DOMAIN_DATA][self._entry_id]["client"].update_data()
+        self._data = self.hass.data[DOMAIN_DATA][self._entry_id][self._cond][self._obj]
 
-        # set state
-        self._state = len(self.hass.data[DOMAIN_DATA][self._condition])
+        # Set state and measurement
+        if self._options[self._cond] not in self._data.keys():
+            self._state = "Error"
+            self._measurement = ""
+            _LOGGER.error(
+                "State is set to incorrect key. Check Options in Integration UI"
+            )
+        else:
+            self._state = self._data[self._options[self._cond]]
+            self._measurement = measureFormat(self._options[self._cond])
 
-        # set host measurement/attirbutes
-        if self._condition == "hosts":
-            self._measurement = "host(s)"
-            for key, value in self.hass.data[DOMAIN_DATA][self._condition].items():
-                self.attr[key] = value
-
-        # set datastore measurement/attirbutes
-        if self._condition == "datastores":
-            self._measurement = "datastore(s)"
-            for key, value in self.hass.data[DOMAIN_DATA][self._condition].items():
-                self.attr[key] = value
-
-        if self._condition == 'licenses':
-            self._measurement = "status"
-            expiration_count = 0
-            expired = False
-
-            for key, value in self.hass.data[DOMAIN_DATA][self._condition].items():
-                self.attr[key] = value
-
-                # check is license expires in 30 or less days or already expired
-                if value["expiration"] != "never" and value["expiration"] <= 30:
-                    expiration_count += 1
-                if value["expiration"] != "never" and value["expiration"] < 1:
-                    expiration_count += 1
-                    expired = True
-
-            # set state based on license expiration
-            if expiration_count != 0 and expired is False:
-                self._state = "Expiring Soon"
-            elif expiration_count != 0 and expired is True:
-                self._state = "Expired"
-            else:
-                self._state = "OK"
-
-        # set vm measurement/attirbutes
-        if self._condition == "vms":
-            self._measurement = "virtual machine(s)"
-            for key, value in self.hass.data[DOMAIN_DATA][self._condition].items():
-                self.attr[key] = value
+        # Set attributes
+        for key, value in self._data.items():
+            self.attr[key] = value
 
     @property
     def unique_id(self):
         """Return a unique ID to use for this sensor."""
-        return "{}_52446d23-5e54-4525-8018-56da195d276f_{}".format(
-            self.config["host"].replace(".", "_"), self._condition
+        return "{}_{}_{}_{}".format(
+            self.config["host"].replace(".", "_"), self._entry_id, self._cond, self._obj
         )
 
     @property
@@ -98,7 +87,7 @@ class esxiSensor(Entity):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return "{} {}".format(self._name, self._condition)
+        return "{} {} {}".format(DEFAULT_NAME, self._cond, self._obj)
 
     @property
     def state(self):
@@ -118,12 +107,20 @@ class esxiSensor(Entity):
     @property
     def device_info(self):
         """Return device info for this sensor."""
-        if self.config_entry is None:
+        if self._config_entry is None:
             indentifier = {(DOMAIN, self.config["host"].replace(".", "_"))}
         else:
-            indentifier = {(DOMAIN, self.config_entry.entry_id)}
+            indentifier = {(DOMAIN, self._config_entry.entry_id)}
         return {
             "identifiers": indentifier,
             "name": "ESXi Stats",
             "manufacturer": "VMware, Inc.",
         }
+
+
+def measureFormat(input):
+    """Return measurement in readable form."""
+    if input in MAP_TO_MEASUREMENT.keys():
+        return MAP_TO_MEASUREMENT[input]
+    else:
+        return capwords(input.replace("_", " "))
