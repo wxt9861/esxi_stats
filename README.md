@@ -100,6 +100,7 @@ ESXi Stats can be configured via Integrations page or in yaml. While yaml is cur
 4. Enter required information and click Submit
 
 ## Sensor States
+
 You can control what attribute key each sensor type displays as a state. For example, you can set VM sensors to display their uptime as their sensor state.
 To change the state of each sensor type:
 
@@ -109,7 +110,6 @@ To change the state of each sensor type:
 4. Restart HASS
 
 ![Options Example](./examples/options_example.png)
-
 
 To enable debug
 
@@ -180,6 +180,10 @@ A custom lovelace card would be ideal, but for now I explored existing available
 - Use [Custom flex-table-card](https://github.com/custom-cards/flex-table-card)
   - Example lovelace yaml can be found [here](examples/flex-table-card-example.yaml)
   - ![Datastore List Example](./examples/datastore_list_example.png)
+- Use [Custom flex-horseshoe-card](https://github.com/AmoebeLabs/flex-horseshoe-card) paired with [Custom decluttering-card](https://github.com/custom-cards/decluttering-card)
+  - Example lovelace yaml can be found [here](examples/flex-horseshoe-card/ui-lovelace.yaml)
+  - This example is valid for flex-horseshoe-card 0.8.2 and declutering-card 0.2.0
+  - ![Virtual Machine Horseshoe Crd Example](./examples/flex-horseshoe-example.png)
 - Use [Custom button-card](https://github.com/custom-cards/button-card)
   - Example lovelace yaml can be found [here](examples/button-card-example.yaml)
   - ![Button-Card Datastore Example](./examples/button_card_ds_example.png) ![Button-Card Host Example](./examples/button_card_host_example.png)
