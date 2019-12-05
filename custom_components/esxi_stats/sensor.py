@@ -1,6 +1,7 @@
 """Sensor platform for esxi_stats."""
 import logging
 from string import capwords
+from datetime import timedelta
 from homeassistant.helpers.entity import Entity
 
 from .const import (
@@ -10,6 +11,8 @@ from .const import (
     DEFAULT_OPTIONS,
     MAP_TO_MEASUREMENT,
 )
+
+SCAN_INTERVAL = timedelta(seconds=15)
 
 _LOGGER = logging.getLogger(__name__)
 
