@@ -9,7 +9,7 @@
 - [Presenting Data in Home Assistant](#presenting-data-in-home-assistant)
 
 ESXi component for Home Assistant
-This component will gather stats from an ESXi server or vCenter. Information gathered can be Host, Datastore, License, and VM info. Information is gathered every 60 seconds.
+This component will gather stats from an ESXi server or vCenter. Information gathered can be Host, Datastore, License, and VM info. Information is gathered approximately every 45 seconds.
 A sensor is created for each discovered monitored object (since release 0.5.0). The sensor state can be changed to suit your needs.
 
 The component pulls the following information:

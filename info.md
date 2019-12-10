@@ -4,22 +4,9 @@
 
 {% endif %}
 
-# **Breaking Changes in 0.5**
+# **Breaking Changes in 0.5.1**
 
-## Each ESXi related objects (vm, datastore, etc) are now their own sensors, this will require you to change lovelace configuration and any template sensors
-
-## If configured via Integrations UI, follow these steps
-
-- Update the component
-- Restart HASS - when hass boots the component will fail to load. That's ok
-- Once HASS UI is back, go to Configuration > Integrations > ESXi Stats integrtion and remove the integration
-- Add the Integration back
-
-## YAML configuration is no longer supported, re-configure via the Integrations UI
-
-## Services now require host as part of service call data. See documentation
-
-## See changelog for more details
+## VM sensor attribute cpu_use_% has been changed to cpu_use_pct. If you have custom sensors relying on this attribute, please modify them to reflect new attribute name
 
 # Configuration options
 

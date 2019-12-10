@@ -3,7 +3,7 @@ vm_flex_template:
     type: 'custom:flex-horseshoe-card'
     entities:
       - entity: '[[entity]]'
-        attribute: cpu_use_%
+        attribute: cpu_use_pct
         decimals: 2
         unit: '%'
         area: CPU
