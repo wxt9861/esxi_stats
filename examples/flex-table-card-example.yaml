@@ -42,7 +42,7 @@ views:
               - name: Uptime (H)
                 attr: uptime_hours
               - name: CPU Usage (%)
-                attr: cpu_use_%
+                attr: cpu_use_pct
               - name: CPUs
                 attr: cpu_count
               - name: Mem Use (MB)

@@ -46,7 +46,7 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
-MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=60)
+MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=45)
 
 VM_PWR_SCHEMA = vol.Schema(
     {

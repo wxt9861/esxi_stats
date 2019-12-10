@@ -233,7 +233,7 @@ async def get_vm_info(vm):
         "state": vm_state,
         "uptime_hours": vm_uptime,
         "cpu_count": vm_sum.config.numCpu,
-        "cpu_use_%": vm_cpu_usage,
+        "cpu_use_pct": vm_cpu_usage,
         "memory_allocated_mb": vm_sum.config.memorySizeMB,
         "memory_used_mb": vm_mem_usage,
         "used_space_gb": vm_used_space,

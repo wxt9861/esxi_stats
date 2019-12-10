@@ -12,7 +12,7 @@ REQUIRED_FILES = [
     "services.yaml",
     ".translations/en.json",
 ]
-VERSION = "0.5.0"
+VERSION = "0.5.1"
 ISSUE_URL = "https://github.com/wxt9861/esxi_stats/issues"
 
 STARTUP = """
@@ -68,7 +68,7 @@ VMHOST_STATES = [
 ]
 
 VM_STATES = [
-    "cpu_use_%",
+    "cpu_use_pct",
     "memory_used_mb",
     "snapshots",
     "status",
