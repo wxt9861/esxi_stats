@@ -63,6 +63,7 @@ LICENSE_STATES = [
 VMHOST_STATES = [
     "cpuusage_ghz",
     "memusage_gb",
+    "state",
     "uptime_hours",
     "vms"
 ]
