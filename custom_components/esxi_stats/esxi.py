@@ -111,7 +111,11 @@ async def get_host_info(host):
         host_mem_total = round(host_summary.hardware.memorySize / 1073741824, 2)
         host_cpu_usage = round(host_summary.quickStats.overallCpuUsage / 1000, 1)
         host_mem_usage = round(host_summary.quickStats.overallMemoryUsage / 1024, 2)
-        host_mm_mode = host_summary.runtime.inMaintenanceMode
+
+        if hasattr(host_summary.runtime, 'inMaintenanceMode'):
+            host_mm_mode = host_summary.runtime.inMaintenanceMode
+        else:
+            host_mm_mode = "N/A"
         host_vms = len(host.vm)
     else:
         host_version = "n/a"
