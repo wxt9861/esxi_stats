@@ -28,7 +28,7 @@ from homeassistant.const import (
     CONF_PASSWORD,
     CONF_PORT,
     CONF_VERIFY_SSL,
-    CONF_MONITORED_CONDITIONS,
+    # CONF_MONITORED_CONDITIONS,
     __version__ as HAVERSION,
 )
 from homeassistant.util import Throttle
@@ -99,7 +99,6 @@ async def async_setup_entry(hass, config_entry):
 
     config = {DOMAIN: config_entry.data}
     entry = config_entry.entry_id
-    config[DOMAIN]["monitored_conditions"] = []
 
     # create data dictionary
     if DOMAIN_DATA not in hass.data:
@@ -114,16 +113,13 @@ async def async_setup_entry(hass, config_entry):
 
     if config_entry.data["vmhost"]:
         hass.data[DOMAIN_DATA][entry]["monitored_conditions"].append("vmhost")
-        config[DOMAIN]["monitored_conditions"].append("vmhost")
     if config_entry.data["datastore"]:
         hass.data[DOMAIN_DATA][entry]["monitored_conditions"].append("datastore")
-        config[DOMAIN]["monitored_conditions"].append("datastore")
     if config_entry.data["license"]:
         hass.data[DOMAIN_DATA][entry]["monitored_conditions"].append("license")
-        config[DOMAIN]["monitored_conditions"].append("license")
+
     if config_entry.data["vm"]:
         hass.data[DOMAIN_DATA][entry]["monitored_conditions"].append("vm")
-        config[DOMAIN]["monitored_conditions"].append("vm")
 
     if not config_entry.options:
         await async_update_options(hass, config_entry)
@@ -176,12 +172,12 @@ class esxiStats:
     def __init__(self, hass, config, config_entry=None):
         """Initialize the class."""
         self.hass = hass
+        self.config = config[DOMAIN]
         self.host = config[DOMAIN].get(CONF_HOST)
         self.user = config[DOMAIN].get(CONF_USERNAME)
         self.passwd = config[DOMAIN].get(CONF_PASSWORD)
         self.port = config[DOMAIN].get(CONF_PORT)
         self.ssl = config[DOMAIN].get(CONF_VERIFY_SSL)
-        self.monitored_conditions = config[DOMAIN].get(CONF_MONITORED_CONDITIONS)
         self.entry = config_entry.entry_id
 
     @Throttle(MIN_TIME_BETWEEN_UPDATES)
@@ -198,7 +194,7 @@ class esxiStats:
             _LOGGER.error("ERROR: %s", error)
         else:
             # get host stats
-            if "vmhost" in self.monitored_conditions:
+            if self.config.get("vmhost") is True:
                 # create/distroy view objects
                 host_objview = content.viewManager.CreateContainerView(
                     content.rootFolder, [vim.HostSystem], True
@@ -207,6 +203,7 @@ class esxiStats:
                 host_objview.Destroy()
 
                 # Look through object list and get data
+                _LOGGER.debug("Found %s host(s)", len(esxi_hosts))
                 for esxi_host in esxi_hosts:
                     host_name = esxi_host.summary.config.name.replace(" ", "_").lower()
 
@@ -216,7 +213,7 @@ class esxiStats:
                     ] = await get_host_info(esxi_host)
 
             # get datastore stats
-            if "datastore" in self.monitored_conditions:
+            if self.config.get("datastore") is True:
                 # create/distroy view objects
                 ds_objview = content.viewManager.CreateContainerView(
                     content.rootFolder, [vim.Datastore], True
@@ -225,6 +222,7 @@ class esxiStats:
                 ds_objview.Destroy()
 
                 # Look through object list and get data
+                _LOGGER.debug("Found %s datastore(s)", len(ds_list))
                 for ds in ds_list:
                     ds_name = ds.summary.name.replace(" ", "_").lower()
 
@@ -234,9 +232,11 @@ class esxiStats:
                     ] = await get_datastore_info(ds)
 
             # get license stats
-            if "license" in self.monitored_conditions:
+            if self.config.get("license") is True:
                 lic_list = content.licenseManager
                 _count = 1
+
+                _LOGGER.debug("Found %s license(s)", len(lic_list.licenses))
                 for lic in lic_list.licenses:
                     _LOGGER.debug("Getting stats for licenses")
                     self.hass.data[DOMAIN_DATA][self.entry]["license"][
@@ -245,7 +245,7 @@ class esxiStats:
                     _count += 1
 
             # get vm stats
-            if "vm" in self.monitored_conditions:
+            if self.config.get("vm") is True:
                 # create/distroy view objects
                 vm_objview = content.viewManager.CreateContainerView(
                     content.rootFolder, [vim.VirtualMachine], True
@@ -254,6 +254,7 @@ class esxiStats:
                 vm_objview.Destroy()
 
                 # Look through object list and get data
+                _LOGGER.debug("Found %s VM(s)", len(vm_list))
                 for vm in vm_list:
                     vm_name = vm.summary.config.name.replace(" ", "_").lower()
 

@@ -97,25 +97,47 @@ async def get_license_info(lic, host):
 async def get_host_info(host):
     """Get host information."""
     host_summary = host.summary
+    host_state = host_summary.runtime.powerState
     host_name = host_summary.config.name.replace(" ", "_").lower()
-    host_version = host_summary.config.product.version
-    host_uptime = round(host_summary.quickStats.uptime / 3600, 1)
-    host_cpu_total = round(
-        host_summary.hardware.cpuMhz * host_summary.hardware.numCpuCores / 1000, 1
-    )
-    host_mem_total = round(host_summary.hardware.memorySize / 1073741824, 2)
-    host_cpu_usage = round(host_summary.quickStats.overallCpuUsage / 1000, 1)
-    host_mem_usage = round(host_summary.quickStats.overallMemoryUsage / 1024, 2)
-    host_vms = len(host.vm)
+
+    _LOGGER.debug("vmhost: %s state is %s", host_name, host_state)
+
+    if host_state == "poweredOn":
+        host_version = host_summary.config.product.version
+        host_uptime = round(host_summary.quickStats.uptime / 3600, 1)
+        host_cpu_total = round(
+            host_summary.hardware.cpuMhz * host_summary.hardware.numCpuCores / 1000, 1
+        )
+        host_mem_total = round(host_summary.hardware.memorySize / 1073741824, 2)
+        host_cpu_usage = round(host_summary.quickStats.overallCpuUsage / 1000, 1)
+        host_mem_usage = round(host_summary.quickStats.overallMemoryUsage / 1024, 2)
+
+        if hasattr(host_summary.runtime, 'inMaintenanceMode'):
+            host_mm_mode = host_summary.runtime.inMaintenanceMode
+        else:
+            host_mm_mode = "N/A"
+        host_vms = len(host.vm)
+    else:
+        host_version = "n/a"
+        host_uptime = "n/a"
+        host_cpu_total = "n/a"
+        host_cpu_usage = "n/a"
+        host_mem_total = "n/a"
+        host_mem_usage = "n/a"
+        host_vms = "n/a"
+
+        _LOGGER.debug("Unable to return stats for %s", host_name)
 
     host_data = {
         "name": host_name,
+        "state": host_state,
         "version": host_version,
         "uptime_hours": host_uptime,
         "cputotal_ghz": host_cpu_total,
         "cpuusage_ghz": host_cpu_usage,
         "memtotal_gb": host_mem_total,
         "memusage_gb": host_mem_usage,
+        "maintenance_mode": host_mm_mode,
         "vms": host_vms,
     }
 
