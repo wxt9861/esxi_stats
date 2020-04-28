@@ -41,7 +41,7 @@ class esxiSensor(Entity):
     def __init__(self, hass, config, cond, obj, config_entry=None):
         """Init."""
         self.hass = hass
-        self.attr = {}
+        self._attr = {}
         self._config_entry = config_entry
         self._entry_id = config_entry.entry_id
         self._state = None
@@ -73,7 +73,7 @@ class esxiSensor(Entity):
 
         # Set attributes
         for key, value in self._data.items():
-            self.attr[key] = value
+            self._attr[key] = value
 
     @property
     def unique_id(self):
@@ -105,7 +105,7 @@ class esxiSensor(Entity):
     @property
     def device_state_attributes(self):
         """Return the state attributes."""
-        return self.attr
+        return self._attr
 
     @property
     def device_info(self):
