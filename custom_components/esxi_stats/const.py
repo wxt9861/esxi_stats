@@ -10,9 +10,9 @@ REQUIRED_FILES = [
     "sensor.py",
     "config_flow.py",
     "services.yaml",
-    ".translations/en.json",
+    "translations/en.json",
 ]
-VERSION = "0.5.1"
+VERSION = "0.5.3"
 ISSUE_URL = "https://github.com/wxt9861/esxi_stats/issues"
 
 STARTUP = """
