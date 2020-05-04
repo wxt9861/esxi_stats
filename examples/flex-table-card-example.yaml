@@ -16,17 +16,17 @@ views:
               include: sensor.esxi_vmhost*
             columns:
               - name: Name
-                attr: name
+                data: name
               - name: Version
-                attr: version
+                data: version
               - name: Uptime (H)
-                attr: uptime_hours
+                data: uptime_hours
               - name: CPU Use (GHz)
-                attr: cpuusage_ghz
+                data: cpuusage_ghz
               - name: Mem Use (GB)
-                attr: memusage_gb
+                data: memusage_gb
               - name: VMs
-                attr: vms
+                data: vms
           - type: custom:flex-table-card
             title: ESXi Virtual Machines
             clickable: true
@@ -34,27 +34,27 @@ views:
               include: sensor.esxi_vm_*
             columns:
               - name: Name
-                attr: name
+                data: name
               - name: Status
-                attr: status
+                data: status
               - name: State
-                attr: state
+                data: state
               - name: Uptime (H)
-                attr: uptime_hours
+                data: uptime_hours
               - name: CPU Usage (%)
-                attr: cpu_use_pct
+                data: cpu_use_pct
               - name: CPUs
-                attr: cpu_count
+                data: cpu_count
               - name: Mem Use (MB)
-                attr: memory_used_mb
+                data: memory_used_mb
               - name: Mem Total (MB)
-                attr: memory_allocated_mb
+                data: memory_allocated_mb
               - name: Storage Used (GB)
-                attr: used_space_gb
+                data: used_space_gb
               - name: VM Tools
-                attr: tools_status
+                data: tools_status
               - name: Snapshots
-                attr: snapshots
+                data: snapshots
           - type: custom:flex-table-card
             title: ESXi Datastores
             clickable: true
@@ -62,14 +62,14 @@ views:
               include: sensor.esxi_datastore*
             columns:
               - name: Name
-                attr: name
+                data: name
               - name: Free Space (GB)
-                attr: free_space_gb
+                data: free_space_gb
               - name: Capacity (GB)
-                attr: total_space_gb
+                data: total_space_gb
               - name: Hosts
-                attr: connected_hosts
+                data: connected_hosts
               - name: VMs
-                attr: virtual_machines
+                data: virtual_machines
               - name: Type
-                attr: type
+                data: type
