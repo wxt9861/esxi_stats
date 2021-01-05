@@ -1,0 +1,42 @@
+{
+    "config": {
+        "title": "ESXi Stats",
+        "step": {
+            "user": {
+                "title": "ESXi Stats",
+                "description": "Si vous avez besoin d'aide pour la configuration, allez voir ici : https://github.com/wxt9861/esxi_stats/blob/master/README.md",
+                "data": {
+                    "host": "Adresse IP ou nom d'hôte (FQDN)",
+                    "port": "Port",
+                    "username": "Nom d'utilisateur",
+                    "password": "Mot de passe",
+                    "verify_ssl": "Vérifier SSL",
+                    "vmhost": "Obtenir des informations sur le(s) hôte(s)",
+                    "datastore": "Obtenir des informations sur la/les banque(s) de données",
+                    "license": "Obtenir des informations sur la/les licence(s)",
+                    "vm": "Obtenir des informations sur les machines virtuelles (VM)"
+                }
+            }
+        },
+        "error": {
+            "communication": "Impossible d'accéder à ESXi avec cette configuration, vérifiez les informations."
+        },
+        "abort": {
+            "single_instance_allowed": "Une seule configuration d'ESXi Stats est autorisée.",
+            "already_configured": "Cet hôte/vCenter est déjà configuré."
+        }
+    },
+    "options": {
+        "step": {
+            "esxi_options":{
+                "data": {
+                    "vmhost": "Attributs d'état de l'hôte",
+                    "datastore": "Attributs d'état du datastore",
+                    "license": "Attributs d'état de la licence",
+                    "vm": "Attributs d'état de la machine virtuelle"
+                },
+                "description": "Configurer les attributs utilisés comme états pour les capteurs ESXi."
+            }
+        }
+    }
+}
