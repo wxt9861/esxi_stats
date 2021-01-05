@@ -1,0 +1,42 @@
+{
+    "config": {
+        "title": "ESXi Stats",
+        "step": {
+            "user": {
+                "title": "ESXi Stats",
+                "description": "如果您需要配置方面的帮助，请查看此处: https://github.com/wxt9861/esxi_stats/blob/master/README.md",
+                "data": {
+                    "host": "IP地址或者主机名 (FQDN)",
+                    "port": "端口",
+                    "username": "用户名",
+                    "password": "命名",
+                    "verify_ssl": "验证SSL",
+                    "vmhost": "获取有关主机的信息",
+                    "datastore": "获取有关数据存储的信息",
+                    "license": "获取有关许可证的信息",
+                    "vm": "获取有关虚拟机的信息"
+                }
+            }
+        },
+        "error": {
+            "communication": "无法使用此配置访问ESXi，请检查输入值."
+        },
+        "abort": {
+            "single_instance_allowed": "仅允许进行ESXi统计信息的单个配置.",
+            "already_configured": "该主机或vCenter已配置."
+        }
+    },
+    "options": {
+        "step": {
+            "esxi_options":{
+                "data": {
+                    "vmhost": "主机状态属性",
+                    "datastore": "数据存储状态属性",
+                    "license": "许可证状态属性",
+                    "vm": "虚拟机状态属性"
+                },
+                "description": "配置哪些属性用作ESXi传感器的状态"
+            }
+        }
+    }
+}
