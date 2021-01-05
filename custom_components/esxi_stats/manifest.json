@@ -5,5 +5,5 @@
     "dependencies": [],
     "codeowners": ["@wxt9861"],
     "config_flow": true,
-    "requirements": ["pyvmomi==6.7.3"]
+    "requirements": ["pyvmomi==7.0.1"]
   }
