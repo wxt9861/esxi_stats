@@ -9,7 +9,7 @@ from .const import SUPPORTED_PRODUCTS
 _LOGGER = logging.getLogger(__name__)
 
 
-async def esx_connect(host, user, pwd, port, ssl):
+def esx_connect(host, user, pwd, port, ssl):
     """Establish connection with host/vcenter."""
     si = None
 
@@ -86,7 +86,7 @@ async def get_license_info(lic, host):
         "status": status,
         "product": product,
         "expiration_days": expiration,
-        "host": host
+        "host": host,
     }
 
     _LOGGER.debug(license_data)
@@ -112,7 +112,7 @@ async def get_host_info(host):
         host_cpu_usage = round(host_summary.quickStats.overallCpuUsage / 1000, 1)
         host_mem_usage = round(host_summary.quickStats.overallMemoryUsage / 1024, 2)
 
-        if hasattr(host_summary.runtime, 'inMaintenanceMode'):
+        if hasattr(host_summary.runtime, "inMaintenanceMode"):
             host_mm_mode = host_summary.runtime.inMaintenanceMode
         else:
             host_mm_mode = "N/A"
@@ -179,10 +179,7 @@ async def get_vm_info(vm):
 
     # If a VM configuration is in INVALID state, return Inalid status
     if vm_conf == "red":
-        vm_data = {
-            "name": vm_name,
-            "status": "Invalid"
-        }
+        vm_data = {"name": vm_name, "status": "Invalid"}
         _LOGGER.debug(vm_data)
         return vm_data
 

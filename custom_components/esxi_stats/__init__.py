@@ -56,10 +56,7 @@ VM_PWR_SCHEMA = vol.Schema(
     }
 )
 SNAP_CREATE_SCHEMA = vol.Schema(
-    {
-        vol.Required(HOST): cv.string,
-        vol.Required(VM): cv.string
-    }, extra=vol.ALLOW_EXTRA
+    {vol.Required(HOST): cv.string, vol.Required(VM): cv.string}, extra=vol.ALLOW_EXTRA
 )
 SNAP_REMOVE_SCHEMA = vol.Schema(
     {
@@ -136,7 +133,7 @@ async def async_setup_entry(hass, config_entry):
             "port": config[DOMAIN]["port"],
             "ssl": config[DOMAIN]["verify_ssl"],
         }
-        conn = await esx_connect(**conn_details)
+        conn = await hass.async_add_executor_job(esx_connect, **conn_details)
         _LOGGER.debug("Product Line: %s", conn.content.about.productLineId)
 
         # get license type and objects
@@ -186,8 +183,8 @@ class esxiStats:
         conn = None
         try:
             # connect and get data from host
-            conn = await esx_connect(
-                self.host, self.user, self.passwd, self.port, self.ssl
+            conn = await self.hass.async_add_executor_job(
+                esx_connect, self.host, self.user, self.passwd, self.port, self.ssl
             )
             content = conn.RetrieveContent()
         except Exception as error:
@@ -362,9 +359,7 @@ async def add_services(hass):
         else:
             _LOGGER.error("snap_remove: '%s' is not a supported command", cmnd)
 
-    hass.services.async_register(
-        DOMAIN, "vm_power", vm_power, schema=VM_PWR_SCHEMA
-    )
+    hass.services.async_register(DOMAIN, "vm_power", vm_power, schema=VM_PWR_SCHEMA)
     hass.services.async_register(
         DOMAIN, "create_snapshot", snap_create, schema=SNAP_CREATE_SCHEMA
     )
