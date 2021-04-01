@@ -3,6 +3,7 @@
 import logging
 import os
 from datetime import datetime, timedelta
+from functools import partial
 
 from .esxi import (
     esx_connect,
@@ -133,7 +134,7 @@ async def async_setup_entry(hass, config_entry):
             "port": config[DOMAIN]["port"],
             "ssl": config[DOMAIN]["verify_ssl"],
         }
-        conn = await hass.async_add_executor_job(esx_connect, **conn_details)
+        conn = await hass.async_add_executor_job(partial(esx_connect, **conn_details))
         _LOGGER.debug("Product Line: %s", conn.content.about.productLineId)
 
         # get license type and objects
