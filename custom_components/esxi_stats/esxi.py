@@ -13,19 +13,24 @@ async def wrapperSmartConnectNoSSL(hass, host, user, pwd, port):
     si = await hass.async_add_executor_job(
         partial(SmartConnectNoSSL, host=host, user=user, pwd=pwd, port=port)
     )
+    current_session = await hass.async_add_executor_job(
+        partial(si.content.sessionManager.currentSession.key)
+    )
     _LOGGER.error("**** DEBUG: %s", dir(si))
-    return si
+    return si, current_session
 
 
-def esx_connect(hass, host, user, pwd, port, ssl):
+async def esx_connect(hass, host, user, pwd, port, ssl):
     """Establish connection with host/vcenter."""
     si = None
 
     # connect depending on SSL_VERIFY setting
     if ssl is False:
-        si = wrapperSmartConnectNoSSL(hass, host=host, user=user, pwd=pwd, port=port)
+        si, current_session = await wrapperSmartConnectNoSSL(
+            hass, host=host, user=user, pwd=pwd, port=port
+        )
         _LOGGER.error("**** DEBUG: %s", dir(si))
-        current_session = si.content.sessionManager.currentSession.key
+        # current_session = si.content.sessionManager.currentSession.key
         _LOGGER.debug("Logged in - session %s", current_session)
     else:
         si = SmartConnect(host=host, user=user, pwd=pwd, port=port)
