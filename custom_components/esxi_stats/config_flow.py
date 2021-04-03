@@ -23,7 +23,7 @@ from .const import (
     DATASTORE_STATES,
     LICENSE_STATES,
     VMHOST_STATES,
-    VM_STATES
+    VM_STATES,
 )
 from .esxi import esx_connect, esx_disconnect
 
@@ -145,7 +145,7 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
     async def _test_communication(self, host, port, verify_ssl, username, password):
         """Return true if the communication is ok."""
         try:
-            conn = await esx_connect(host, username, password, port, verify_ssl)
+            conn = esx_connect(self.hass, host, username, password, port, verify_ssl)
             _LOGGER.debug(conn)
 
             esx_disconnect(conn)

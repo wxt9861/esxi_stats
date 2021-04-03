@@ -1,5 +1,5 @@
 """ESXi commands for ESXi Stats component."""
-
+from functools import partial
 import logging
 from pyVim.connect import SmartConnect, SmartConnectNoSSL
 from pyVmomi import vim, vmodl  # pylint: disable=no-name-in-module
@@ -9,13 +9,22 @@ from .const import SUPPORTED_PRODUCTS
 _LOGGER = logging.getLogger(__name__)
 
 
-def esx_connect(host, user, pwd, port, ssl):
+async def wrapperSmartConnectNoSSL(hass, host, user, pwd, port):
+    si = await hass.async_add_executor_job(
+        partial(SmartConnectNoSSL, host=host, user=user, pwd=pwd, port=port)
+    )
+    _LOGGER.error("**** DEBUG: %s", dir(si))
+    return si
+
+
+def esx_connect(hass, host, user, pwd, port, ssl):
     """Establish connection with host/vcenter."""
     si = None
 
     # connect depending on SSL_VERIFY setting
     if ssl is False:
-        si = SmartConnectNoSSL(host=host, user=user, pwd=pwd, port=port)
+        si = wrapperSmartConnectNoSSL(hass, host=host, user=user, pwd=pwd, port=port)
+        _LOGGER.error("**** DEBUG: %s", dir(si))
         current_session = si.content.sessionManager.currentSession.key
         _LOGGER.debug("Logged in - session %s", current_session)
     else:
