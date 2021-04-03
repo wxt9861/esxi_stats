@@ -1,5 +1,5 @@
 """ESXi commands for ESXi Stats component."""
-from functools import partial
+
 import logging
 from pyVim.connect import SmartConnect, SmartConnectNoSSL
 from pyVmomi import vim, vmodl  # pylint: disable=no-name-in-module
@@ -9,28 +9,14 @@ from .const import SUPPORTED_PRODUCTS
 _LOGGER = logging.getLogger(__name__)
 
 
-async def wrapperSmartConnectNoSSL(hass, host, user, pwd, port):
-    si = await hass.async_add_executor_job(
-        partial(SmartConnectNoSSL, host=host, user=user, pwd=pwd, port=port)
-    )
-    current_session = await hass.async_add_executor_job(
-        partial(si.content.sessionManager.currentSession.key)
-    )
-    _LOGGER.error("**** DEBUG: %s", dir(si))
-    return si, current_session
-
-
-async def esx_connect(hass, host, user, pwd, port, ssl):
+def esx_connect(host, user, pwd, port, ssl):
     """Establish connection with host/vcenter."""
     si = None
 
     # connect depending on SSL_VERIFY setting
     if ssl is False:
-        si, current_session = await wrapperSmartConnectNoSSL(
-            hass, host=host, user=user, pwd=pwd, port=port
-        )
-        _LOGGER.error("**** DEBUG: %s", dir(si))
-        # current_session = si.content.sessionManager.currentSession.key
+        si = SmartConnectNoSSL(host=host, user=user, pwd=pwd, port=port)
+        current_session = si.content.sessionManager.currentSession.key
         _LOGGER.debug("Logged in - session %s", current_session)
     else:
         si = SmartConnect(host=host, user=user, pwd=pwd, port=port)
@@ -71,7 +57,7 @@ def check_license(lic):
                             return True
 
 
-async def get_license_info(lic, host):
+def get_license_info(lic, host):
     """Get license information."""
     expiration = "n/a"
     product = "n/a"
@@ -100,7 +86,7 @@ async def get_license_info(lic, host):
         "status": status,
         "product": product,
         "expiration_days": expiration,
-        "host": host,
+        "host": host
     }
 
     _LOGGER.debug(license_data)
@@ -108,7 +94,7 @@ async def get_license_info(lic, host):
     return license_data
 
 
-async def get_host_info(host):
+def get_host_info(host):
     """Get host information."""
     host_summary = host.summary
     host_state = host_summary.runtime.powerState
@@ -126,7 +112,7 @@ async def get_host_info(host):
         host_cpu_usage = round(host_summary.quickStats.overallCpuUsage / 1000, 1)
         host_mem_usage = round(host_summary.quickStats.overallMemoryUsage / 1024, 2)
 
-        if hasattr(host_summary.runtime, "inMaintenanceMode"):
+        if hasattr(host_summary.runtime, 'inMaintenanceMode'):
             host_mm_mode = host_summary.runtime.inMaintenanceMode
         else:
             host_mm_mode = "N/A"
@@ -160,7 +146,7 @@ async def get_host_info(host):
     return host_data
 
 
-async def get_datastore_info(ds):
+def get_datastore_info(ds):
     """Get datastore information."""
     ds_summary = ds.summary
     ds_name = ds_summary.name.replace(" ", "_").lower()
@@ -182,7 +168,7 @@ async def get_datastore_info(ds):
     return ds_data
 
 
-async def get_vm_info(vm):
+def get_vm_info(vm):
     """Get VM information."""
     vm_conf = vm.configStatus
     vm_sum = vm.summary
@@ -193,7 +179,10 @@ async def get_vm_info(vm):
 
     # If a VM configuration is in INVALID state, return Inalid status
     if vm_conf == "red":
-        vm_data = {"name": vm_name, "status": "Invalid"}
+        vm_data = {
+            "name": vm_name,
+            "status": "Invalid"
+        }
         _LOGGER.debug(vm_data)
         return vm_data
 
@@ -298,9 +287,9 @@ def listSnapshots(snapshots, tree=False):
     return snapshot_data
 
 
-async def vm_pwr(hass, target_host, target_vm, target_cmnd, conn_details):
+def vm_pwr(hass, target_host, target_vm, target_cmnd, conn_details):
     """VM power commands."""
-    conn = await esx_connect(**conn_details)
+    conn = esx_connect(**conn_details)
     content = conn.RetrieveContent()
     objView = content.viewManager.CreateContainerView(
         content.rootFolder, [vim.VirtualMachine], True
@@ -330,7 +319,7 @@ async def vm_pwr(hass, target_host, target_vm, target_cmnd, conn_details):
             # some tasks are fire and forget, no status will be provided
             if task:
                 message = "power " + target_cmnd + " on " + vm.name
-                await taskStatus(hass, task, message)
+                taskStatus(hass, task, message)
             else:
                 _LOGGER.info("'%s' task does not provide feedback", target_cmnd)
 
@@ -351,11 +340,11 @@ async def vm_pwr(hass, target_host, target_vm, target_cmnd, conn_details):
     return True
 
 
-async def vm_snap_take(
+def vm_snap_take(
     hass, target_host, target_vm, snap_name, desc, memory, quiesce, conn_details
 ):
     """Take Snapshot commands."""
-    conn = await esx_connect(**conn_details)
+    conn = esx_connect(**conn_details)
     content = conn.RetrieveContent()
     objView = content.viewManager.CreateContainerView(
         content.rootFolder, [vim.VirtualMachine], True
@@ -371,7 +360,7 @@ async def vm_snap_take(
             # while task is running, check status
             if task:
                 message = "create snapshot on " + vm.name
-                await taskStatus(hass, task, message)
+                taskStatus(hass, task, message)
             else:
                 _LOGGER.info("Task does not provide feedback")
 
@@ -392,9 +381,9 @@ async def vm_snap_take(
     return True
 
 
-async def vm_snap_remove(hass, target_host, target_vm, target_cmnd, conn_details):
+def vm_snap_remove(hass, target_host, target_vm, target_cmnd, conn_details):
     """Remove Snapshot commands."""
-    conn = await esx_connect(**conn_details)
+    conn = esx_connect(**conn_details)
     content = conn.RetrieveContent()
     objView = content.viewManager.CreateContainerView(
         content.rootFolder, [vim.VirtualMachine], True
@@ -431,7 +420,7 @@ async def vm_snap_remove(hass, target_host, target_vm, target_cmnd, conn_details
             # while task is running, check status
             if task:
                 message = "remove " + target_cmnd + " snapshot(s) on " + vm.name
-                await taskStatus(hass, task, message)
+                taskStatus(hass, task, message)
             else:
                 _LOGGER.info("Task does not provide feedback")
 
@@ -452,9 +441,9 @@ async def vm_snap_remove(hass, target_host, target_vm, target_cmnd, conn_details
     return True
 
 
-async def taskStatus(hass, task, command):
+def taskStatus(hass, task, command):
     """Check status of running task."""
-    from asyncio import sleep
+    from time import sleep
     from homeassistant.components import persistent_notification
 
     # wait while task is in progress
@@ -465,18 +454,18 @@ async def taskStatus(hass, task, command):
                 "Task %s progress %s", task.info.eventChainId, task.info.progress
             )
 
-        await sleep(2)
+        sleep(2)
 
     # output task status once complete
     if task.info.state == "success":
         _LOGGER.info("Sending command to '%s' complete", task.info.entityName)
 
         message = "Complete - " + command
-        persistent_notification.async_create(hass, message, "ESXi Stats")
+        persistent_notification.create(hass, message, "ESXi Stats")
     if task.info.state == "error":
         _LOGGER.info("Sending command to '%s' failed", task.info.entityName)
         _LOGGER.info(task.info.error.msg)
 
         message = "Failed - " + command + "\n\n"
         message += task.info.error.msg
-        persistent_notification.async_create(hass, message, "ESXi Stats")
+        persistent_notification.create(hass, message, "ESXi Stats")
