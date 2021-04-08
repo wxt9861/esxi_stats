@@ -57,7 +57,7 @@ class esxiSensor(Entity):
 
     def update(self):
         """Update the sensor."""
-        self.hass.data[DOMAIN_DATA][self._entry_id]["client"].update_data
+        self.hass.data[DOMAIN_DATA][self._entry_id]["client"].update_data()
         self._data = self.hass.data[DOMAIN_DATA][self._entry_id][self._cond][self._obj]
 
         # Set state and measurement

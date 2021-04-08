@@ -1,6 +1,5 @@
 """ESXi Stats Integration."""
 import asyncio
-import functools
 import logging
 import os
 from datetime import datetime, timedelta
@@ -102,13 +101,13 @@ async def async_setup_entry(hass, config_entry):
     # create data dictionary
     if DOMAIN_DATA not in hass.data:
         hass.data[DOMAIN_DATA] = {}
-    hass.data[DOMAIN_DATA][entry] = {}
-    hass.data[DOMAIN_DATA][entry]["configuration"] = "config_flow"
-    hass.data[DOMAIN_DATA][entry]["vmhost"] = {}
-    hass.data[DOMAIN_DATA][entry]["datastore"] = {}
-    hass.data[DOMAIN_DATA][entry]["license"] = {}
-    hass.data[DOMAIN_DATA][entry]["vm"] = {}
-    hass.data[DOMAIN_DATA][entry]["monitored_conditions"] = []
+        hass.data[DOMAIN_DATA][entry] = {}
+        hass.data[DOMAIN_DATA][entry]["configuration"] = "config_flow"
+        hass.data[DOMAIN_DATA][entry]["vmhost"] = {}
+        hass.data[DOMAIN_DATA][entry]["datastore"] = {}
+        hass.data[DOMAIN_DATA][entry]["license"] = {}
+        hass.data[DOMAIN_DATA][entry]["vm"] = {}
+        hass.data[DOMAIN_DATA][entry]["monitored_conditions"] = []
 
     if config_entry.data["vmhost"]:
         hass.data[DOMAIN_DATA][entry]["monitored_conditions"].append("vmhost")
