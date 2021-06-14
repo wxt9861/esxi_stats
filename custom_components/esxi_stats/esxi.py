@@ -104,6 +104,7 @@ def get_host_info(host):
 
     if host_state == "poweredOn":
         host_version = host_summary.config.product.version
+        host_build = host_summary.config.product.build
         host_uptime = round(host_summary.quickStats.uptime / 3600, 1)
         host_cpu_total = round(
             host_summary.hardware.cpuMhz * host_summary.hardware.numCpuCores / 1000, 1
@@ -119,6 +120,7 @@ def get_host_info(host):
         host_vms = len(host.vm)
     else:
         host_version = "n/a"
+        host_build = "n/a"
         host_uptime = "n/a"
         host_cpu_total = "n/a"
         host_cpu_usage = "n/a"
@@ -132,6 +134,7 @@ def get_host_info(host):
         "name": host_name,
         "state": host_state,
         "version": host_version,
+        "version": host_build,
         "uptime_hours": host_uptime,
         "cputotal_ghz": host_cpu_total,
         "cpuusage_ghz": host_cpu_usage,
