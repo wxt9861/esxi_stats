@@ -134,7 +134,7 @@ def get_host_info(host):
         "name": host_name,
         "state": host_state,
         "version": host_version,
-        "version": host_build,
+        "build": host_build,
         "uptime_hours": host_uptime,
         "cputotal_ghz": host_cpu_total,
         "cpuusage_ghz": host_cpu_usage,
