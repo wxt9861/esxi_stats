@@ -1,5 +1,6 @@
 {
     "files.associations": {
         "*.yaml": "home-assistant"
-    }
+    },
+    "python.pythonPath": "/usr/local/bin/python3"
 }

@@ -102,6 +102,11 @@ def get_host_info(host):
 
     _LOGGER.debug("vmhost: %s state is %s", host_name, host_state)
 
+    if hasattr(host_summary.runtime, 'inMaintenanceMode'):
+        host_mm_mode = host_summary.runtime.inMaintenanceMode
+    else:
+        host_mm_mode = "N/A"
+
     if host_state == "poweredOn":
         host_version = host_summary.config.product.version
         host_uptime = round(host_summary.quickStats.uptime / 3600, 1)
@@ -111,11 +116,6 @@ def get_host_info(host):
         host_mem_total = round(host_summary.hardware.memorySize / 1073741824, 2)
         host_cpu_usage = round(host_summary.quickStats.overallCpuUsage / 1000, 1)
         host_mem_usage = round(host_summary.quickStats.overallMemoryUsage / 1024, 2)
-
-        if hasattr(host_summary.runtime, 'inMaintenanceMode'):
-            host_mm_mode = host_summary.runtime.inMaintenanceMode
-        else:
-            host_mm_mode = "N/A"
         host_vms = len(host.vm)
     else:
         host_version = "n/a"
