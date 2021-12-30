@@ -4,25 +4,14 @@ import logging
 import os
 from datetime import datetime, timedelta
 
-from .esxi import (
-    esx_connect,
-    esx_disconnect,
-    check_license,
-    get_host_info,
-    get_datastore_info,
-    get_license_info,
-    get_vm_info,
-    vm_pwr,
-    vm_snap_take,
-    vm_snap_remove,
-)
 from pyVmomi import vim  # pylint: disable=no-name-in-module
 import voluptuous as vol
-
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.exceptions import ConfigEntryNotReady
 import homeassistant.helpers.config_validation as cv
+from homeassistant.util import Throttle
+
 from homeassistant.const import (
     CONF_HOST,
     CONF_USERNAME,
@@ -32,7 +21,21 @@ from homeassistant.const import (
     # CONF_MONITORED_CONDITIONS,
     __version__ as HAVERSION,
 )
-from homeassistant.util import Throttle
+
+from .esxi import (
+    esx_connect,
+    esx_disconnect,
+    check_license,
+    get_host_info,
+    get_datastore_info,
+    get_license_info,
+    get_vm_info,
+    host_pwr_policy,
+    vm_pwr,
+    vm_snap_take,
+    vm_snap_remove,
+)
+
 from .const import (
     AVAILABLE_CMND_VM_SNAP,
     AVAILABLE_CMND_VM_POWER,
@@ -49,6 +52,12 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=45)
 
+HOST_PWR_SCHEMA = vol.Schema(
+    {
+        vol.Required(HOST): cv.string,
+        vol.Required(COMMAND): cv.string,
+    }
+)
 VM_PWR_SCHEMA = vol.Schema(
     {
         vol.Required(HOST): cv.string,
@@ -226,13 +235,13 @@ class esxiStats:
 
                 # Look through object list and get data
                 _LOGGER.debug("Found %s datastore(s)", len(ds_list))
-                for ds in ds_list:
-                    ds_name = ds.summary.name.replace(" ", "_").lower()
+                for datastore in ds_list:
+                    ds_name = datastore.summary.name.replace(" ", "_").lower()
 
                     _LOGGER.debug("Getting stats for datastore: %s", ds_name)
                     self.hass.data[DOMAIN_DATA][self.entry]["datastore"][
                         ds_name
-                    ] = get_datastore_info(ds)
+                    ] = get_datastore_info(datastore)
 
             # get license stats
             if self.config.get("license") is True:
@@ -258,13 +267,15 @@ class esxiStats:
 
                 # Look through object list and get data
                 _LOGGER.debug("Found %s VM(s)", len(vm_list))
-                for vm in vm_list:
-                    vm_name = vm.summary.config.name.replace(" ", "_").lower()
+                for virtual_machine in vm_list:
+                    vm_name = virtual_machine.summary.config.name.replace(
+                        " ", "_"
+                    ).lower()
 
                     _LOGGER.debug("Getting stats for vm: %s", vm_name)
                     self.hass.data[DOMAIN_DATA][self.entry]["vm"][
                         vm_name
-                    ] = get_vm_info(vm)
+                    ] = get_vm_info(virtual_machine)
         finally:
             if conn is not None:
                 esx_disconnect(conn)
@@ -303,32 +314,51 @@ def async_add_services(hass):
                     "port": _entry.data.get("port"),
                     "ssl": _entry.data.get("verify_ssl"),
                 }
-            else:
-                continue
 
         raise ValueError("Host is not configured in HomeAssistant")
+
+    @callback
+    def async_get_vm_details(vm_name):
+        for _entry in hass.data[DOMAIN_DATA]:
+            if vm_name in hass.data[DOMAIN_DATA][_entry]["vm"]:
+                return hass.data[DOMAIN_DATA][_entry]["vm"][vm_name]["uuid"]
+
+        raise ValueError("VM UUID not found")
+
+    # Host Power Policy service
+    async def host_power_policy(call):
+        host = call.data["host"]
+        cmnd = call.data["command"]
+
+        try:
+            conn_details = async_get_conn_details(host)
+            await hass.async_add_executor_job(host_pwr_policy, host, cmnd, conn_details)
+        except Exception as error:
+            _LOGGER.error(str(error))
 
     # VM power service
     async def vm_power(call):
         host = call.data["host"]
-        vm = call.data["vm"]
+        vm_name = call.data["vm"]
+        vm_uuid = async_get_vm_details(vm_name)
         cmnd = call.data["command"]
 
         if cmnd in AVAILABLE_CMND_VM_POWER:
             try:
                 conn_details = async_get_conn_details(host)
                 await hass.async_add_executor_job(
-                    vm_pwr, hass, host, vm, cmnd, conn_details
+                    vm_pwr, hass, host, vm_name, vm_uuid, cmnd, conn_details
                 )
-            except Exception as e:
-                _LOGGER.error(str(e))
+            except Exception as error:
+                _LOGGER.error(str(error))
         else:
             _LOGGER.error("vm_power: '%s' is not a supported command", cmnd)
 
     # Snapshot create service
     async def snap_create(call):
         host = call.data["host"]
-        vm = call.data["vm"]
+        vm_name = call.data["vm"]
+        vm_uuid = async_get_vm_details(vm_name)
         memory = False
         quiesce = False
         now = datetime.now()
@@ -336,7 +366,6 @@ def async_add_services(hass):
 
         if "name" in call.data:
             name = call.data["name"]
-
         if "description" in call.data:
             desc = call.data["description"]
         if "memory" in call.data:
@@ -347,25 +376,35 @@ def async_add_services(hass):
         try:
             conn_details = async_get_conn_details(host)
             hass.async_add_executor_job(
-                vm_snap_take, hass, host, vm, name, desc, memory, quiesce, conn_details
+                vm_snap_take,
+                hass,
+                host,
+                vm_name,
+                vm_uuid,
+                name,
+                desc,
+                memory,
+                quiesce,
+                conn_details,
             )
-        except Exception as e:
-            _LOGGER.error(str(e))
+        except Exception as error:
+            _LOGGER.error(str(error))
 
     # Snapshot remove service
     async def snap_remove(call):
         host = call.data["host"]
-        vm = call.data["vm"]
+        vm_name = call.data["vm"]
+        vm_uuid = async_get_vm_details(vm_name)
         cmnd = call.data["command"]
 
         if cmnd in AVAILABLE_CMND_VM_SNAP:
             try:
                 conn_details = async_get_conn_details(host)
                 hass.async_add_executor_job(
-                    vm_snap_remove, hass, host, vm, cmnd, conn_details
+                    vm_snap_remove, hass, host, vm_name, vm_uuid, cmnd, conn_details
                 )
-            except Exception as e:
-                _LOGGER.error(str(e))
+            except Exception as error:
+                _LOGGER.error(str(error))
         else:
             _LOGGER.error("snap_remove: '%s' is not a supported command", cmnd)
 
@@ -375,6 +414,9 @@ def async_add_services(hass):
     )
     hass.services.async_register(
         DOMAIN, "remove_snapshot", snap_remove, schema=SNAP_REMOVE_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, "host_power_policy", host_power_policy, schema=HOST_PWR_SCHEMA
     )
 
 
@@ -400,4 +442,5 @@ async def async_unload_entry(hass, config_entry):
 
 @callback
 def async_update_options(hass, config_entry):
+    """Update config entry options"""
     hass.config_entries.async_update_entry(config_entry, options=DEFAULT_OPTIONS)

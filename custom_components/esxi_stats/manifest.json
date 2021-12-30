@@ -7,5 +7,5 @@
     "codeowners": ["@wxt9861"],
     "config_flow": true,
     "requirements": ["pyvmomi==7.0.3"],
-    "version": "0.6.4"
+    "version": "0.7.0"
   }
