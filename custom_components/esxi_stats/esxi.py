@@ -1,5 +1,4 @@
 """ESXi commands for ESXi Stats component."""
-
 import logging
 from pyVim.connect import SmartConnect, SmartConnectNoSSL
 from pyVmomi import vim, vmodl  # pylint: disable=no-name-in-module
@@ -339,7 +338,9 @@ def host_pwr_policy(host, host_cmnd, conn_details):
     return True
 
 
-def vm_pwr(hass, target_host, target_vm, target_vm_uuid, target_cmnd, conn_details):
+def vm_pwr(
+    hass, target_host, target_vm, target_vm_uuid, target_cmnd, conn_details, notify
+):
     """VM power commands."""
     conn = esx_connect(**conn_details)
     content = conn.RetrieveContent()
@@ -384,7 +385,7 @@ def vm_pwr(hass, target_host, target_vm, target_vm_uuid, target_cmnd, conn_detai
             # some tasks are fire and forget, no status will be provided
             if task:
                 message = "power " + target_cmnd + " on " + vm.name
-                task_status(hass, task, message)
+                task_status(hass, task, message, notify)
             else:
                 _LOGGER.info("'%s' task does not provide feedback", target_cmnd)
 
@@ -415,6 +416,7 @@ def vm_snap_take(
     memory,
     quiesce,
     conn_details,
+    notify,
 ):
     """Take Snapshot commands."""
     conn = esx_connect(**conn_details)
@@ -446,7 +448,7 @@ def vm_snap_take(
             # while task is running, check status
             if task:
                 message = "create snapshot on " + vm.name
-                task_status(hass, task, message)
+                task_status(hass, task, message, notify)
             else:
                 _LOGGER.info("Task does not provide feedback")
 
@@ -469,7 +471,7 @@ def vm_snap_take(
 
 
 def vm_snap_remove(
-    hass, target_host, target_vm, target_vm_uuid, target_cmnd, conn_details
+    hass, target_host, target_vm, target_vm_uuid, target_cmnd, conn_details, notify
 ):
     """Remove Snapshot commands."""
     conn = esx_connect(**conn_details)
@@ -522,7 +524,7 @@ def vm_snap_remove(
             # while task is running, check status
             if task:
                 message = "remove " + target_cmnd + " snapshot(s) on " + vm.name
-                task_status(hass, task, message)
+                task_status(hass, task, message, notify)
             else:
                 _LOGGER.info("Task does not provide feedback")
 
@@ -543,7 +545,7 @@ def vm_snap_remove(
     return True
 
 
-def task_status(hass, task, command):
+def task_status(hass, task, command, notify):
     """Check status of running task."""
     from time import sleep
     from homeassistant.components import persistent_notification
@@ -563,7 +565,10 @@ def task_status(hass, task, command):
         _LOGGER.info("Sending command to '%s' complete", task.info.entityName)
 
         message = "Complete - " + command
-        persistent_notification.create(hass, message, "ESXi Stats")
+        if notify:
+            persistent_notification.create(hass, message, "ESXi Stats")
+        else:
+            _LOGGER.debug("Not creating notification: notification flag is false")
     if task.info.state == "error":
         _LOGGER.info("Sending command to '%s' failed", task.info.entityName)
         _LOGGER.info(task.info.error.msg)

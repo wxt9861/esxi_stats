@@ -18,7 +18,6 @@ from homeassistant.const import (
     CONF_PASSWORD,
     CONF_PORT,
     CONF_VERIFY_SSL,
-    # CONF_MONITORED_CONDITIONS,
     __version__ as HAVERSION,
 )
 
@@ -80,14 +79,6 @@ CONFIG_SCHEMA = vol.Schema(
 )
 
 
-async def async_setup(hass, config):
-    """Set up this integration using yaml.
-
-    This method is no longer supported.
-    """
-    return True
-
-
 async def async_setup_entry(hass, config_entry):
     """Set up this integration using UI."""
     conf = hass.data.get(DOMAIN_DATA)
@@ -145,7 +136,7 @@ async def async_setup_entry(hass, config_entry):
 
     # if lisense allows API write, register services
     if lic:
-        async_add_services(hass)
+        async_add_services(hass, config_entry)
     else:
         _LOGGER.info(
             "Service calls are disabled - %s doesn't have a supported license",
@@ -202,7 +193,7 @@ class esxiStats:
             # connect and get data from host
             conn = esx_connect(self.host, self.user, self.passwd, self.port, self.ssl)
             content = conn.RetrieveContent()
-        except Exception as error:
+        except Exception as error:  # pylint: disable=broad-except
             _LOGGER.error("ERROR: %s", error)
         else:
             # get host stats
@@ -283,10 +274,10 @@ class esxiStats:
 
 def check_files(hass):
     """Return bool that indicates if all files are present."""
-    base = "{}/custom_components/{}/".format(hass.config.path(), DOMAIN)
+    base = f"{hass.config.path()}/custom_components/{DOMAIN}/"
     missing = []
     for file in REQUIRED_FILES:
-        fullpath = "{}{}".format(base, file)
+        fullpath = f"{base}{file}"
         if not os.path.exists(fullpath):
             missing.append(file)
 
@@ -300,8 +291,12 @@ def check_files(hass):
 
 
 @callback
-def async_add_services(hass):
+def async_add_services(hass, config_entry):
     """Add ESXi Stats services."""
+
+    # Set notify here - but there has to be a better way
+    notify = config_entry.options["notify"]
+
     # Check that a host exists in HomeAssistant and get its credentials
     @callback
     def async_get_conn_details(host):
@@ -333,7 +328,7 @@ def async_add_services(hass):
         try:
             conn_details = async_get_conn_details(host)
             await hass.async_add_executor_job(host_pwr_policy, host, cmnd, conn_details)
-        except Exception as error:
+        except Exception as error:  # pylint: disable=broad-except
             _LOGGER.error(str(error))
 
     # VM power service
@@ -347,9 +342,9 @@ def async_add_services(hass):
             try:
                 conn_details = async_get_conn_details(host)
                 await hass.async_add_executor_job(
-                    vm_pwr, hass, host, vm_name, vm_uuid, cmnd, conn_details
+                    vm_pwr, hass, host, vm_name, vm_uuid, cmnd, conn_details, notify
                 )
-            except Exception as error:
+            except Exception as error:  # pylint: disable=broad-except
                 _LOGGER.error(str(error))
         else:
             _LOGGER.error("vm_power: '%s' is not a supported command", cmnd)
@@ -386,8 +381,9 @@ def async_add_services(hass):
                 memory,
                 quiesce,
                 conn_details,
+                notify,
             )
-        except Exception as error:
+        except Exception as error:  # pylint: disable=broad-except
             _LOGGER.error(str(error))
 
     # Snapshot remove service
@@ -401,9 +397,16 @@ def async_add_services(hass):
             try:
                 conn_details = async_get_conn_details(host)
                 hass.async_add_executor_job(
-                    vm_snap_remove, hass, host, vm_name, vm_uuid, cmnd, conn_details
+                    vm_snap_remove,
+                    hass,
+                    host,
+                    vm_name,
+                    vm_uuid,
+                    cmnd,
+                    conn_details,
+                    notify,
                 )
-            except Exception as error:
+            except Exception as error:  # pylint: disable=broad-except
                 _LOGGER.error(str(error))
         else:
             _LOGGER.error("snap_remove: '%s' is not a supported command", cmnd)
@@ -416,7 +419,10 @@ def async_add_services(hass):
         DOMAIN, "remove_snapshot", snap_remove, schema=SNAP_REMOVE_SCHEMA
     )
     hass.services.async_register(
-        DOMAIN, "host_power_policy", host_power_policy, schema=HOST_PWR_SCHEMA
+        DOMAIN,
+        "host_power_policy",
+        host_power_policy,
+        schema=HOST_PWR_SCHEMA,
     )
 
 
