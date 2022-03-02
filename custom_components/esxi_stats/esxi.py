@@ -289,6 +289,22 @@ def listSnapshots(snapshots, tree=False):
 
     return snapshot_data
 
+def host_pwr(hass, target_host, target_cmnd, conn_details):  
+    conn = esx_connect(**conn_details)
+    content = conn.RetrieveContent()
+    objView = content.viewManager.CreateContainerView(
+        content.rootFolder, [vim.HostSystem], True
+    )
+    esxi_hosts = objView.view
+    objView.Destroy()
+
+    for esxi_host in esxi_hosts:
+      if target_cmnd == 'shutdown':
+        _LOGGER.info(esxi_host.summary.config.name + ": " + target_cmnd)
+        esxi_host.ShutdownHost_Task(True)
+      if target_cmnd == 'reboot':
+        _LOGGER.info(esxi_host.summary.config.name + ": " + target_cmnd)
+        esxi_host.RebootHost_Task(True)
 
 def vm_pwr(hass, target_host, target_vm, target_cmnd, conn_details):
     """VM power commands."""

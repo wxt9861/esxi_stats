@@ -12,6 +12,7 @@ from .esxi import (
     get_datastore_info,
     get_license_info,
     get_vm_info,
+    host_pwr,
     vm_pwr,
     vm_snap_take,
     vm_snap_remove,
@@ -36,6 +37,7 @@ from homeassistant.util import Throttle
 from .const import (
     AVAILABLE_CMND_VM_SNAP,
     AVAILABLE_CMND_VM_POWER,
+    AVAILABLE_CMND_HOST_POWER,
     COMMAND,
     DEFAULT_OPTIONS,
     DOMAIN,
@@ -48,6 +50,13 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=45)
+
+HOST_PWR_SCHEMA = vol.Schema(
+    {
+        vol.Required(HOST): cv.string,
+        vol.Required(COMMAND): cv.string,
+    }
+)
 
 VM_PWR_SCHEMA = vol.Schema(
     {
@@ -307,6 +316,22 @@ def async_add_services(hass):
                 continue
 
         raise ValueError("Host is not configured in HomeAssistant")
+    
+    # Host shutdown
+    async def host_power(call):
+      host = call.data["host"]
+      cmnd = call.data["command"]
+
+      if cmnd in AVAILABLE_CMND_HOST_POWER:
+          try:
+              conn_details = async_get_conn_details(host)
+              await hass.async_add_executor_job(
+                  host_pwr, hass, host, cmnd, conn_details
+              )
+          except Exception as e:
+              _LOGGER.error(str(e))
+      else:
+          _LOGGER.error("host_power: '%s' is not a supported command", cmnd)
 
     # VM power service
     async def vm_power(call):
@@ -369,7 +394,9 @@ def async_add_services(hass):
         else:
             _LOGGER.error("snap_remove: '%s' is not a supported command", cmnd)
 
+
     hass.services.async_register(DOMAIN, "vm_power", vm_power, schema=VM_PWR_SCHEMA)
+    hass.services.async_register(DOMAIN, "host_power", host_power, schema=HOST_PWR_SCHEMA)
     hass.services.async_register(
         DOMAIN, "create_snapshot", snap_create, schema=SNAP_CREATE_SCHEMA
     )

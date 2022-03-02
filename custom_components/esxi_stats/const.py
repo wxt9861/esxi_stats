@@ -65,7 +65,8 @@ VMHOST_STATES = [
     "memusage_gb",
     "state",
     "uptime_hours",
-    "vms"
+    "vms",
+    "shutdown_supported"
 ]
 
 VM_STATES = [
@@ -93,6 +94,7 @@ MAP_TO_MEASUREMENT = {
 SUPPORTED_PRODUCTS = ["VMware ESX Server", "VMware VirtualCenter Server"]
 AVAILABLE_CMND_VM_POWER = ["on", "off", "reboot", "reset", "shutdown", "suspend"]
 AVAILABLE_CMND_VM_SNAP = ["all", "first", "last"]
+AVAILABLE_CMND_HOST_POWER = ["shutdown", "reboot"]
 HOST = "host"
 VM = "vm"
 COMMAND = "command"

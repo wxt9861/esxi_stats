@@ -1,3 +1,13 @@
+host_power:
+  description: Sends power commands to vCenter/ESXi Host
+  fields:
+    host:
+      description: Host/vCenter target
+      example: 192.168.1.1
+    command:
+      description: Power command to run against ESXi host
+      example: 'reboot,shutdown'
+
 vm_power:
   description: Sends Virtual Machine power commands to vCenter/ESXi Host
   fields:
