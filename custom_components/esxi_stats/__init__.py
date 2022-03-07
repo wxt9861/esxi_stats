@@ -124,7 +124,7 @@ async def async_setup_entry(hass, config_entry):
 
     # get global config
     _LOGGER.debug("Setting up host %s", config[DOMAIN].get(CONF_HOST))
-    hass.data[DOMAIN_DATA][entry]["client"] = esxiStats(hass, config, config_entry)
+    hass.data[DOMAIN_DATA][entry]["client"] = EsxiStats(hass, config, config_entry)
 
     lic = await hass.async_add_executor_job(connect, hass, config, entry)
 
@@ -164,14 +164,14 @@ def connect(hass, config, entry):
         hass.data[DOMAIN_DATA][entry]["client"].update_data()
     except Exception as exception:  # pylint: disable=broad-except
         _LOGGER.error(exception)
-        raise ConfigEntryNotReady
+        raise ConfigEntryNotReady from exception
     finally:
         esx_disconnect(conn)
 
     return lic
 
 
-class esxiStats:
+class EsxiStats:
     """This class handles communication, services, and stores the data."""
 
     def __init__(self, hass, config, config_entry=None):
@@ -295,7 +295,10 @@ def async_add_services(hass, config_entry):
     """Add ESXi Stats services."""
 
     # Set notify here - but there has to be a better way
-    notify = config_entry.options["notify"]
+    if config_entry.options["notify"]:
+        notify = config_entry.options["notify"]
+    else:
+        notify: True
 
     # Check that a host exists in HomeAssistant and get its credentials
     @callback
