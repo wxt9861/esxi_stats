@@ -98,3 +98,4 @@ AVAILABLE_CMND_HOST_POWER = ["shutdown", "reboot"]
 HOST = "host"
 VM = "vm"
 COMMAND = "command"
+FORCE = "force"

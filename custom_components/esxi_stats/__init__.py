@@ -46,6 +46,7 @@ from .const import (
     REQUIRED_FILES,
     HOST,
     VM,
+    FORCE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -55,6 +56,7 @@ HOST_PWR_SCHEMA = vol.Schema(
     {
         vol.Required(HOST): cv.string,
         vol.Required(COMMAND): cv.string,
+        vol.Required(FORCE): cv.boolean,
     }
 )
 
@@ -321,12 +323,13 @@ def async_add_services(hass):
     async def host_power(call):
       host = call.data["host"]
       cmnd = call.data["command"]
+      forc = call.data["force"]
 
       if cmnd in AVAILABLE_CMND_HOST_POWER:
           try:
               conn_details = async_get_conn_details(host)
               await hass.async_add_executor_job(
-                  host_pwr, hass, host, cmnd, conn_details
+                  host_pwr, hass, host, cmnd, conn_details, forc
               )
           except Exception as e:
               _LOGGER.error(str(e))
