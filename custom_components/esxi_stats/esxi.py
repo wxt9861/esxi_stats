@@ -265,6 +265,7 @@ def get_vm_info(vm):
         "guest_ip": vm_ip,
         "snapshots": vm_snapshots,
         "uuid": vm_sum.config.uuid,
+        "host_name": vm_run.host.name
     }
 
     _LOGGER.debug(vm_data)
