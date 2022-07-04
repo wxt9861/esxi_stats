@@ -92,6 +92,7 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
         datastore = True
         license = True
         vm = True
+        notify = True
 
         if user_input is not None:
             if "host" in user_input:

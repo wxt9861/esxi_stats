@@ -1,3 +1,16 @@
+host_power:
+  description: Sends power commands to vCenter/ESXi Host
+  fields:
+    host:
+      description: Host/vCenter target
+      example: 192.168.1.1
+    command:
+      description: Power command to run against ESXi host
+      example: 'reboot,shutdown'
+    force:
+      description: Flag to specify whether or not the host should be shut down/rebooted regardless of whether it is in maintenance mode. If true, the host is shut down/rebooted, even if there are virtual machines running or other operations in progress.
+      example: 'true, false'
+
 host_power_policy:
   name: Host Power Policy
   description: Changes ESXi Host Power Policy
