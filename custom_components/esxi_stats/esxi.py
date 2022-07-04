@@ -289,7 +289,9 @@ def list_snapshots(snapshots, tree=False):
 
     return snapshot_data
 
-def host_pwr(hass, target_host, target_cmnd, conn_details, force):  
+
+def host_pwr(hass, target_host, target_cmnd, conn_details, force):
+    """Host power commands."""
     conn = esx_connect(**conn_details)
     content = conn.RetrieveContent()
     objView = content.viewManager.CreateContainerView(
@@ -298,13 +300,23 @@ def host_pwr(hass, target_host, target_cmnd, conn_details, force):
     esxi_hosts = objView.view
     objView.Destroy()
 
-    for esxi_host in esxi_hosts:
-      if target_cmnd == 'shutdown':
-        _LOGGER.info(esxi_host.summary.config.name + ": " + target_cmnd)
-        esxi_host.ShutdownHost_Task(force)
-      if target_cmnd == 'reboot':
-        _LOGGER.info(esxi_host.summary.config.name + ": " + target_cmnd)
-        esxi_host.RebootHost_Task(force)
+    try:
+        for esxi_host in esxi_hosts:
+            if target_cmnd == 'shutdown':
+                _LOGGER.info(esxi_host.summary.config.name + ": " + target_cmnd)
+                esxi_host.ShutdownHost_Task(force)
+            if target_cmnd == 'reboot':
+                _LOGGER.info(esxi_host.summary.config.name + ": " + target_cmnd)
+                esxi_host.RebootHost_Task(force)
+    except vmodl.MethodFault as error:
+        _LOGGER.info(error.msg)
+    except vmodl.HostConfigFault as error:
+        _LOGGER.info(str(error))
+    except vmodl.RuntimeFault as error:
+        _LOGGER.info(error.msg)
+    finally:
+        esx_disconnect(conn)
+
 
 def host_pwr_policy(host, host_cmnd, conn_details):
     """Host power policy command."""
@@ -320,7 +332,7 @@ def host_pwr_policy(host, host_cmnd, conn_details):
         _LOGGER.warning(
             "Multiple hosts found. This likely indicates vCenter. Skipping..."
         )
-        return
+        return True
 
     try:
         for vm_host in data:

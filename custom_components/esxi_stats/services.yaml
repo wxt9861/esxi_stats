@@ -1,4 +1,5 @@
 host_power:
+  name: ESXi Host Power
   description: Sends power commands to vCenter/ESXi Host
   fields:
     host:
