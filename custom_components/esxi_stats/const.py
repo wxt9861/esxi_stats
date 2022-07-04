@@ -12,7 +12,7 @@ REQUIRED_FILES = [
     "services.yaml",
     "translations/en.json",
 ]
-VERSION = "0.6.3"
+VERSION = "0.7.0"
 ISSUE_URL = "https://github.com/wxt9861/esxi_stats/issues"
 
 STARTUP = """
@@ -30,6 +30,7 @@ CONF_DS_STATE = "datastore"
 CONF_HOST_STATE = "vmhost"
 CONF_LIC_STATE = "license"
 CONF_VM_STATE = "vm"
+CONF_NOTIFY = "notify"
 
 # DEFAULT_NAME = "ESXi Stats"
 DEFAULT_NAME = "ESXi"
@@ -44,7 +45,8 @@ DEFAULT_OPTIONS = {
     "datastore": "free_space_gb",
     "vmhost": "vms",
     "license": "status",
-    "vm": "state"
+    "vm": "state",
+    "notify": "true"
 }
 
 DATASTORE_STATES = [

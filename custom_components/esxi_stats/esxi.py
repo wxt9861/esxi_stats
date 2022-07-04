@@ -1,5 +1,4 @@
 """ESXi commands for ESXi Stats component."""
-
 import logging
 from pyVim.connect import SmartConnect, SmartConnectNoSSL
 from pyVmomi import vim, vmodl  # pylint: disable=no-name-in-module
@@ -11,29 +10,29 @@ _LOGGER = logging.getLogger(__name__)
 
 def esx_connect(host, user, pwd, port, ssl):
     """Establish connection with host/vcenter."""
-    si = None
+    service_instance = None
 
     # connect depending on SSL_VERIFY setting
     if ssl is False:
-        si = SmartConnectNoSSL(host=host, user=user, pwd=pwd, port=port)
-        current_session = si.content.sessionManager.currentSession.key
+        service_instance = SmartConnectNoSSL(host=host, user=user, pwd=pwd, port=port)
+        current_session = service_instance.content.sessionManager.currentSession.key
         _LOGGER.debug("Logged in - session %s", current_session)
     else:
-        si = SmartConnect(host=host, user=user, pwd=pwd, port=port)
-        current_session = si.content.sessionManager.currentSession.key
+        service_instance = SmartConnect(host=host, user=user, pwd=pwd, port=port)
+        current_session = service_instance.content.sessionManager.currentSession.key
         _LOGGER.debug("Logged in - session %s", current_session)
 
-    return si
+    return service_instance
 
 
 def esx_disconnect(conn):
     """Kill connection from host/vcenter."""
     current_session = conn.content.sessionManager.currentSession.key
     try:
-        conn._stub.pool[0][0].sock.shutdown(2)
+        conn._stub.pool[0][0].sock.shutdown(2)  # pylint: disable=protected-access
         _LOGGER.debug("Logged out - session %s", current_session)
-    except Exception as e:
-        _LOGGER.debug(e)
+    except Exception as error:
+        _LOGGER.debug(error)
 
 
 def check_license(lic):
@@ -86,7 +85,7 @@ def get_license_info(lic, host):
         "status": status,
         "product": product,
         "expiration_days": expiration,
-        "host": host
+        "host": host,
     }
 
     _LOGGER.debug(license_data)
@@ -102,7 +101,7 @@ def get_host_info(host):
 
     _LOGGER.debug("vmhost: %s state is %s", host_name, host_state)
 
-    if hasattr(host_summary.runtime, 'inMaintenanceMode'):
+    if hasattr(host_summary.runtime, "inMaintenanceMode"):
         host_mm_mode = host_summary.runtime.inMaintenanceMode
     else:
         host_mm_mode = "N/A"
@@ -117,6 +116,7 @@ def get_host_info(host):
         host_mem_total = round(host_summary.hardware.memorySize / 1073741824, 2)
         host_cpu_usage = round(host_summary.quickStats.overallCpuUsage / 1000, 1)
         host_mem_usage = round(host_summary.quickStats.overallMemoryUsage / 1024, 2)
+        host_power_policy = host.config.powerSystemInfo.currentPolicy.shortName
         host_vms = len(host.vm)
     else:
         host_version = "n/a"
@@ -141,6 +141,7 @@ def get_host_info(host):
         "memtotal_gb": host_mem_total,
         "memusage_gb": host_mem_usage,
         "maintenance_mode": host_mm_mode,
+        "power_policy": host_power_policy,
         "vms": host_vms,
     }
 
@@ -149,9 +150,9 @@ def get_host_info(host):
     return host_data
 
 
-def get_datastore_info(ds):
+def get_datastore_info(datastore):
     """Get datastore information."""
-    ds_summary = ds.summary
+    ds_summary = datastore.summary
     ds_name = ds_summary.name.replace(" ", "_").lower()
     ds_capacity = round(ds_summary.capacity / 1073741824, 2)
     ds_freespace = round(ds_summary.freeSpace / 1073741824, 2)
@@ -162,8 +163,8 @@ def get_datastore_info(ds):
         "type": ds_type,
         "free_space_gb": ds_freespace,
         "total_space_gb": ds_capacity,
-        "connected_hosts": len(ds.host),
-        "virtual_machines": len(ds.vm),
+        "connected_hosts": len(datastore.host),
+        "virtual_machines": len(datastore.vm),
     }
 
     _LOGGER.debug(ds_data)
@@ -182,10 +183,7 @@ def get_vm_info(vm):
 
     # If a VM configuration is in INVALID state, return Inalid status
     if vm_conf == "red":
-        vm_data = {
-            "name": vm_name,
-            "status": "Invalid"
-        }
+        vm_data = {"name": vm_name, "status": "Invalid"}
         _LOGGER.debug(vm_data)
         return vm_data
 
@@ -194,7 +192,7 @@ def get_vm_info(vm):
 
     # if snapshots present, get number of snapshots
     if vm_snap is not None:
-        vm_snapshots = len(listSnapshots(vm_snap.rootSnapshotList))
+        vm_snapshots = len(list_snapshots(vm_snap.rootSnapshotList))
     else:
         vm_snapshots = 0
 
@@ -266,7 +264,8 @@ def get_vm_info(vm):
         "guest_os": vm_guest_os,
         "guest_ip": vm_ip,
         "snapshots": vm_snapshots,
-        "host_name": vm_run.host.name,
+        "uuid": vm_sum.config.uuid,
+        "host_name": vm_run.host.name
     }
 
     _LOGGER.debug(vm_data)
@@ -274,7 +273,7 @@ def get_vm_info(vm):
     return vm_data
 
 
-def listSnapshots(snapshots, tree=False):
+def list_snapshots(snapshots, tree=False):
     """Get VM snapshot information.
 
     tree=True will return snapshot tree details required for snapshot removal
@@ -286,24 +285,88 @@ def listSnapshots(snapshots, tree=False):
             snapshot_data.append(snapshot)
         else:
             snapshot_data.append(snapshot.id)
-        snapshot_data = snapshot_data + listSnapshots(snapshot.childSnapshotList, tree)
+        snapshot_data = snapshot_data + list_snapshots(snapshot.childSnapshotList, tree)
 
     return snapshot_data
 
 
-def vm_pwr(hass, target_host, target_vm, target_cmnd, conn_details):
+def host_pwr_policy(host, host_cmnd, conn_details):
+    """Host power policy command."""
+    conn = esx_connect(**conn_details)
+    content = conn.RetrieveContent()
+    obj_view = content.viewManager.CreateContainerView(
+        content.rootFolder, [vim.HostSystem], True
+    )
+    data = obj_view.view
+    obj_view.Destroy()
+
+    if len(data) > 1:
+        _LOGGER.warning(
+            "Multiple hosts found. This likely indicates vCenter. Skipping..."
+        )
+        return
+
+    try:
+        for vm_host in data:
+            _LOGGER.info(
+                "Sending power policy '%s' command to host '%s'", host_cmnd, host
+            )
+
+            policy_key = ""
+            available_policy = []
+            for policy in vm_host.config.powerSystemCapability.availablePolicy:
+                available_policy.append(policy.shortName)
+                if policy.shortName == host_cmnd:
+                    policy_key = policy.key
+
+            if host_cmnd in available_policy:
+                vm_host.configManager.powerSystem.ConfigurePowerPolicy(policy_key)
+            else:
+                _LOGGER.warning(
+                    "Power policy on %s not found. Available power policies: %s",
+                    host,
+                    available_policy,
+                )
+    except vmodl.MethodFault as error:
+        _LOGGER.info(error.msg)
+    except vmodl.HostConfigFault as error:
+        _LOGGER.info(str(error))
+    except vmodl.RuntimeFault as error:
+        _LOGGER.info(error.msg)
+    finally:
+        esx_disconnect(conn)
+
+    return True
+
+
+def vm_pwr(
+    hass, target_host, target_vm, target_vm_uuid, target_cmnd, conn_details, notify
+):
     """VM power commands."""
     conn = esx_connect(**conn_details)
     content = conn.RetrieveContent()
-    objView = content.viewManager.CreateContainerView(
+    obj_view = content.viewManager.CreateContainerView(
         content.rootFolder, [vim.VirtualMachine], True
     )
-    data = objView.view
-    objView.Destroy()
+    data = obj_view.view
+    obj_view.Destroy()
 
     try:
-        for vm in [vm for vm in data if vm.name in target_vm]:
+        for vm in [vm for vm in data if vm.summary.config.uuid in target_vm_uuid]:
             _LOGGER.info("Sending '%s' command to vm '%s'", target_cmnd, vm.name)
+
+            if vm.name == target_vm:
+                _LOGGER.debug(
+                    "Provided name %s (UUID %s) matches name on target",
+                    target_vm,
+                    target_vm_uuid,
+                )
+            else:
+                _LOGGER.debug(
+                    "Provided name %s (UUID %s) does notmatch name on target",
+                    target_vm,
+                    target_vm_uuid,
+                )
 
             # generate task based on requested command
             if target_cmnd == "on":
@@ -323,7 +386,7 @@ def vm_pwr(hass, target_host, target_vm, target_cmnd, conn_details):
             # some tasks are fire and forget, no status will be provided
             if task:
                 message = "power " + target_cmnd + " on " + vm.name
-                taskStatus(hass, task, message)
+                task_status(hass, task, message, notify)
             else:
                 _LOGGER.info("'%s' task does not provide feedback", target_cmnd)
 
@@ -334,10 +397,10 @@ def vm_pwr(hass, target_host, target_vm, target_cmnd, conn_details):
                 target_vm,
                 target_host,
             )
-    except vmodl.MethodFault as e:
-        _LOGGER.info(e.msg)
-    except Exception as e:
-        _LOGGER.info(str(e))
+    except vmodl.MethodFault as error:
+        _LOGGER.info(error.msg)
+    except Exception as error:
+        _LOGGER.info(str(error))
     finally:
         esx_disconnect(conn)
 
@@ -345,58 +408,96 @@ def vm_pwr(hass, target_host, target_vm, target_cmnd, conn_details):
 
 
 def vm_snap_take(
-    hass, target_host, target_vm, snap_name, desc, memory, quiesce, conn_details
+    hass,
+    target_host,
+    target_vm,
+    target_vm_uuid,
+    snap_name,
+    desc,
+    memory,
+    quiesce,
+    conn_details,
+    notify,
 ):
     """Take Snapshot commands."""
     conn = esx_connect(**conn_details)
     content = conn.RetrieveContent()
-    objView = content.viewManager.CreateContainerView(
+    obj_view = content.viewManager.CreateContainerView(
         content.rootFolder, [vim.VirtualMachine], True
     )
-    data = objView.view
-    objView.Destroy()
+    data = obj_view.view
+    obj_view.Destroy()
 
     try:
-        for vm in [vm for vm in data if vm.name in target_vm]:
+        for vm in [vm for vm in data if vm.summary.config.uuid in target_vm_uuid]:
             _LOGGER.info("Sending create snapshot command to vm '%s'", vm.name)
+
+            if vm.name == target_vm:
+                _LOGGER.debug(
+                    "Provided name %s (UUID %s) matches name on target",
+                    target_vm,
+                    target_vm_uuid,
+                )
+            else:
+                _LOGGER.debug(
+                    "Provided name %s (UUID %s) does notmatch name on target",
+                    target_vm,
+                    target_vm_uuid,
+                )
             task = vm.CreateSnapshot_Task(snap_name, desc, memory, quiesce)
 
             # while task is running, check status
             if task:
                 message = "create snapshot on " + vm.name
-                taskStatus(hass, task, message)
+                task_status(hass, task, message, notify)
             else:
                 _LOGGER.info("Task does not provide feedback")
 
             break
         else:
             _LOGGER.info(
-                "VM %s on host %s not found. Make sure the name is correct",
+                "VM %s (UUID %s) on host %s not found. Make sure the name is correct",
                 target_vm,
+                target_vm_uuid,
                 target_host,
             )
-    except vmodl.MethodFault as e:
-        _LOGGER.info(e.msg)
-    except Exception as e:
-        _LOGGER.info(str(e))
+    except vmodl.MethodFault as error:
+        _LOGGER.info(error.msg)
+    except Exception as error:
+        _LOGGER.info(str(error))
     finally:
         esx_disconnect(conn)
 
     return True
 
 
-def vm_snap_remove(hass, target_host, target_vm, target_cmnd, conn_details):
+def vm_snap_remove(
+    hass, target_host, target_vm, target_vm_uuid, target_cmnd, conn_details, notify
+):
     """Remove Snapshot commands."""
     conn = esx_connect(**conn_details)
     content = conn.RetrieveContent()
-    objView = content.viewManager.CreateContainerView(
+    obj_view = content.viewManager.CreateContainerView(
         content.rootFolder, [vim.VirtualMachine], True
     )
-    data = objView.view
-    objView.Destroy()
+    data = obj_view.view
+    obj_view.Destroy()
 
     try:
-        for vm in [vm for vm in data if vm.name in target_vm]:
+        for vm in [vm for vm in data if vm.summary.config.uuid in target_vm_uuid]:
+            if vm.name == target_vm:
+                _LOGGER.debug(
+                    "Provided name %s (UUID %s) matches name on target",
+                    target_vm,
+                    target_vm_uuid,
+                )
+            else:
+                _LOGGER.debug(
+                    "Provided name %s (UUID %s) does notmatch name on target",
+                    target_vm,
+                    target_vm_uuid,
+                )
+
             # if there are 0 snapshots, stop
             if vm.snapshot is None:
                 _LOGGER.info("No snapshots to remove on %s", vm.name)
@@ -407,7 +508,7 @@ def vm_snap_remove(hass, target_host, target_vm, target_cmnd, conn_details):
             )
 
             # get a list of all snapshots
-            snapshots = listSnapshots(vm.snapshot.rootSnapshotList, True)
+            snapshots = list_snapshots(vm.snapshot.rootSnapshotList, True)
 
             # remove all snapshots
             if target_cmnd == "all":
@@ -424,7 +525,7 @@ def vm_snap_remove(hass, target_host, target_vm, target_cmnd, conn_details):
             # while task is running, check status
             if task:
                 message = "remove " + target_cmnd + " snapshot(s) on " + vm.name
-                taskStatus(hass, task, message)
+                task_status(hass, task, message, notify)
             else:
                 _LOGGER.info("Task does not provide feedback")
 
@@ -435,17 +536,17 @@ def vm_snap_remove(hass, target_host, target_vm, target_cmnd, conn_details):
                 target_vm,
                 target_host,
             )
-    except vmodl.MethodFault as e:
-        _LOGGER.info(e.msg)
-    except Exception as e:
-        _LOGGER.info(str(e))
+    except vmodl.MethodFault as error:
+        _LOGGER.info(error.msg)
+    except Exception as error:
+        _LOGGER.info(str(error))
     finally:
         esx_disconnect(conn)
 
     return True
 
 
-def taskStatus(hass, task, command):
+def task_status(hass, task, command, notify):
     """Check status of running task."""
     from time import sleep
     from homeassistant.components import persistent_notification
@@ -465,7 +566,10 @@ def taskStatus(hass, task, command):
         _LOGGER.info("Sending command to '%s' complete", task.info.entityName)
 
         message = "Complete - " + command
-        persistent_notification.create(hass, message, "ESXi Stats")
+        if notify:
+            persistent_notification.create(hass, message, "ESXi Stats")
+        else:
+            _LOGGER.debug("Not creating notification: notification flag is false")
     if task.info.state == "error":
         _LOGGER.info("Sending command to '%s' failed", task.info.entityName)
         _LOGGER.info(task.info.error.msg)

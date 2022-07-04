@@ -1,4 +1,16 @@
+host_power_policy:
+  name: Host Power Policy
+  description: Changes ESXi Host Power Policy
+  fields:
+    host:
+      description: Host on which to change Power Policy
+      example: 192.168.1.1
+    command:
+      description: Type of power policy to apply
+      example: 'balanced'
+
 vm_power:
+  name: Virtual Machine Power
   description: Sends Virtual Machine power commands to vCenter/ESXi Host
   fields:
     host:
@@ -12,6 +24,7 @@ vm_power:
       example: 'on,off,reboot,reset,shutdown,suspend'
 
 create_snapshot:
+  name: Create Virtual Machine Snapshot
   description: Sends a command to vCenter/ESXi Host to take a Virtual Machine snapshot. For detailed information about snapshots see https://kb.vmware.com/s/article/1015180
   fields:
     host:
@@ -34,6 +47,7 @@ create_snapshot:
       example: 'true/false (default: false)'
 
 remove_snapshot:
+  name: Remove Virtual Machine Snapshot
   description: Sends a command to vCenter/ESXi Host to remove a Virtual Machine snapshot
   fields:
     host:
