@@ -1,3 +1,5 @@
+# pylint: disable=import-outside-toplevel
+
 """ESXi commands for ESXi Stats component."""
 import logging
 from pyVim.connect import SmartConnect, SmartConnectNoSSL
@@ -31,7 +33,7 @@ def esx_disconnect(conn):
     try:
         conn._stub.pool[0][0].sock.shutdown(2)  # pylint: disable=protected-access
         _LOGGER.debug("Logged out - session %s", current_session)
-    except Exception as error:
+    except Exception as error:  # pylint: disable=broad-except
         _LOGGER.debug(error)
 
 
@@ -98,6 +100,7 @@ def get_host_info(host):
     host_summary = host.summary
     host_state = host_summary.runtime.powerState
     host_name = host_summary.config.name.replace(" ", "_").lower()
+    host_capability = host.capability
 
     _LOGGER.debug("vmhost: %s state is %s", host_name, host_state)
 
@@ -141,6 +144,7 @@ def get_host_info(host):
         "memtotal_gb": host_mem_total,
         "memusage_gb": host_mem_usage,
         "maintenance_mode": host_mm_mode,
+        "shutdown_supported": host_capability.shutdownSupported,
         "power_policy": host_power_policy,
         "vms": host_vms,
     }
@@ -222,7 +226,13 @@ def get_vm_info(vm):
             vm_mem_usage = round(vm_sum.quickStats.hostMemoryUsage, 2)
         else:
             vm_mem_usage = "n/a"
-            _LOGGER.debug("Unable to return memory usage for %s", vm_name)
+            _LOGGER.debug("Unable to return host memory usage for %s", vm_name)
+
+        if vm_sum.quickStats.guestMemoryUsage:
+            vm_mem_active = round(vm_sum.quickStats.guestMemoryUsage, 2)
+        else:
+            vm_mem_active = "n/a"
+            _LOGGER.debug("Unable to return active memory usage")
 
         if vm_sum.quickStats.uptimeSeconds:
             vm_uptime = round(vm_sum.quickStats.uptimeSeconds / 3600, 1)
@@ -246,6 +256,7 @@ def get_vm_info(vm):
     else:
         vm_cpu_usage = "n/a"
         vm_mem_usage = "n/a"
+        vm_mem_active = "n/a"
         vm_ip = "n/a"
         vm_uptime = "n/a"
         vm_guest_os = vm_sum.config.guestFullName
@@ -259,13 +270,14 @@ def get_vm_info(vm):
         "cpu_use_pct": vm_cpu_usage,
         "memory_allocated_mb": vm_sum.config.memorySizeMB,
         "memory_used_mb": vm_mem_usage,
+        "memory_active_mb": vm_mem_active,
         "used_space_gb": vm_used_space,
         "tools_status": vm_tools_status,
         "guest_os": vm_guest_os,
         "guest_ip": vm_ip,
         "snapshots": vm_snapshots,
         "uuid": vm_sum.config.uuid,
-        "host_name": vm_run.host.name
+        "host_name": vm_run.host.name,
     }
 
     _LOGGER.debug(vm_data)
@@ -294,18 +306,18 @@ def host_pwr(hass, target_host, target_cmnd, conn_details, force):
     """Host power commands."""
     conn = esx_connect(**conn_details)
     content = conn.RetrieveContent()
-    objView = content.viewManager.CreateContainerView(
+    obj_view = content.viewManager.CreateContainerView(
         content.rootFolder, [vim.HostSystem], True
     )
-    esxi_hosts = objView.view
-    objView.Destroy()
+    esxi_hosts = obj_view.view
+    obj_view.Destroy()
 
     try:
         for esxi_host in esxi_hosts:
-            if target_cmnd == 'shutdown':
+            if target_cmnd == "shutdown":
                 _LOGGER.info(esxi_host.summary.config.name + ": " + target_cmnd)
                 esxi_host.ShutdownHost_Task(force)
-            if target_cmnd == 'reboot':
+            if target_cmnd == "reboot":
                 _LOGGER.info(esxi_host.summary.config.name + ": " + target_cmnd)
                 esxi_host.RebootHost_Task(force)
     except vmodl.MethodFault as error:
@@ -427,7 +439,7 @@ def vm_pwr(
             )
     except vmodl.MethodFault as error:
         _LOGGER.info(error.msg)
-    except Exception as error:
+    except Exception as error:  # pylint: disable=broad-except
         _LOGGER.info(str(error))
     finally:
         esx_disconnect(conn)
@@ -491,7 +503,7 @@ def vm_snap_take(
             )
     except vmodl.MethodFault as error:
         _LOGGER.info(error.msg)
-    except Exception as error:
+    except Exception as error:  # pylint: disable=broad-except
         _LOGGER.info(str(error))
     finally:
         esx_disconnect(conn)
@@ -566,7 +578,7 @@ def vm_snap_remove(
             )
     except vmodl.MethodFault as error:
         _LOGGER.info(error.msg)
-    except Exception as error:
+    except Exception as error:  # pylint: disable=broad-except
         _LOGGER.info(str(error))
     finally:
         esx_disconnect(conn)
