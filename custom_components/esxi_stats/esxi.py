@@ -315,11 +315,21 @@ def host_pwr(hass, target_host, target_cmnd, conn_details, force):
     try:
         for esxi_host in esxi_hosts:
             if target_cmnd == "shutdown":
-                _LOGGER.info(esxi_host.summary.config.name + ": " + target_cmnd)
-                esxi_host.ShutdownHost_Task(force)
+                # esxi_host.ShutdownHost_Task(force)
+                _LOGGER.info(
+                    "Sending %s command to %s (forced: %s)",
+                    target_cmnd,
+                    esxi_host.summary.config.name,
+                    force
+                )
             if target_cmnd == "reboot":
-                _LOGGER.info(esxi_host.summary.config.name + ": " + target_cmnd)
-                esxi_host.RebootHost_Task(force)
+                # esxi_host.RebootHost_Task(force)
+                _LOGGER.info(
+                    "Sending %s command to %s (forced: %s)",
+                    target_cmnd,
+                    esxi_host.summary.config.name,
+                    force
+                )
     except vmodl.MethodFault as error:
         _LOGGER.info(error.msg)
     except vmodl.HostConfigFault as error:
