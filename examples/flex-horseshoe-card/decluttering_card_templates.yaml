@@ -1,3 +1,4 @@
+---
 vm_flex_template:
   card:
     type: 'custom:flex-horseshoe-card'
@@ -148,5 +149,5 @@ vm_flex_template:
       55: '#ffb414'
       65: '#FFAD12'
       75: '#FFA40E'
-      85: '#FF9C0B' 
-      95: '#FF8C06' 
+      85: '#FF9C0B'
+      95: '#FF8C06'

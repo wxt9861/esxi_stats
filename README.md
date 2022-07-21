@@ -16,14 +16,15 @@ The component pulls the following information:
 
 - Hosts (sensor.esxi_stats_hosts)
 
-  - host name
-  - host version
-  - host uptime in hours
-  - host cpu total in MHz (core speed \* # of cores)
-  - host cpu usage in MHz
-  - host memory total in GB
-  - host memory usage in GB
-  - host power policy
+  - Host name
+  - Host version
+  - Host uptime in hours
+  - Host cpu total in MHz (core speed \* # of cores)
+  - Host cpu usage in MHz
+  - Host memory total in GB
+  - Host memory usage in GB
+  - Host power policy
+  - Host shutdown capability
   - Number of VMs on host
 
 - Datastores (sensor.esxi_stats_datastores)
@@ -52,11 +53,13 @@ The component pulls the following information:
   - CPU usage %
   - Configured memory in MB
   - Used memory in MB
+  - Active memory in MB
   - Storage used in GB
   - VM Tools status (tools running, not running, not install, etc)
   - VM guest OS
   - VM guest IP address (if VM has multiple, only primary will be shown)
   - Number of snapshots
+  - Power policy
 
 Sensor Example
 ![Datastore Sensor Example](examples/datastore_sensor_example.png)
@@ -130,6 +133,10 @@ To issue a command:
 2. Enter required data
 
 The following serivces are available:
+- **esxi_stats.host_power** - shutdown / reboot a VM Host **EARLY BETA, logging only**
+  ```json
+  {"host":"host/vCenter", "command": "shutdown/reboot"}
+  ```
 
 - **esxi_stats.host_power_policy** - set Power Policy on a VM Host
   - Issuing this service against a vCenter with multiple hosts will **not** execute the command at this time.

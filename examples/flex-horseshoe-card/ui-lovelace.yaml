@@ -1,4 +1,4 @@
-
+---
 ##########################################################################################
 # This is a simplified version of ui-lovelace.yaml that can be used as a template for    #
 # creating custom flex-horseshoe-cards. For more detailed configuration information see  #
@@ -31,13 +31,15 @@ decluttering_templates:
 
 ######## Create a view
 views:
-  title: <TITLE>                                      ## CHANGE NEEDED
+  ## CHANGE NEEDED BELOW
+  title: <TITLE>
   cards:
     - type: custom:decluttering-card
       template: vm_flex_template
       variables:
-        - entity: sensor.<NAME_OF_THE_VM_SENSOR_HERE> ## CHANGE NEEDED
-        - name: <NAME>                                ## CHANGE NEEDED 
-                                                      ### In the example picture this is  
-                                                      ### seen as 'DKR02' at the bottom 
-                                                      ### of the card
+          ## CHANGE NEEDED BELOW
+          ## In the example picture this is  
+          ## seen as 'DKR02' at the bottom 
+          ## of the card
+        - entity: sensor.<NAME_OF_THE_VM_SENSOR_HERE>
+        - name: <NAME>
