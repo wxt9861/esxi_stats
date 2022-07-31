@@ -329,9 +329,7 @@ def async_add_services(hass, config_entry):
         if cmnd in AVAILABLE_CMND_HOST_POWER:
             try:
                 conn_details = async_get_conn_details(host)
-                await hass.async_add_executor_job(
-                    host_pwr, hass, host, cmnd, conn_details, forc
-                )
+                await hass.async_add_executor_job(host_pwr, cmnd, conn_details, forc)
             except Exception as error:  # pylint: disable=broad-except
                 _LOGGER.error(str(error))
         else:

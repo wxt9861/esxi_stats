@@ -302,7 +302,7 @@ def list_snapshots(snapshots, tree=False):
     return snapshot_data
 
 
-def host_pwr(hass, target_host, target_cmnd, conn_details, force):
+def host_pwr(target_cmnd, conn_details, force):
     """Host power commands."""
     conn = esx_connect(**conn_details)
     content = conn.RetrieveContent()
@@ -312,24 +312,28 @@ def host_pwr(hass, target_host, target_cmnd, conn_details, force):
     esxi_hosts = obj_view.view
     obj_view.Destroy()
 
+    print(len(esxi_hosts))
+    if len(esxi_hosts) > 1:
+        _LOGGER.warning(
+            "Multiple hosts found. This likely indicates vCenter. "
+            "Shutdown command does not support vCenter, yet. Skipping..."
+        )
+        return True
+
     try:
         for esxi_host in esxi_hosts:
             if target_cmnd == "shutdown":
-                # esxi_host.ShutdownHost_Task(force)
-                _LOGGER.info(
-                    "Sending %s command to %s (forced: %s)",
-                    target_cmnd,
-                    esxi_host.summary.config.name,
-                    force,
-                )
+                esxi_host.ShutdownHost_Task(force)
+
             if target_cmnd == "reboot":
-                # esxi_host.RebootHost_Task(force)
-                _LOGGER.info(
-                    "Sending %s command to %s (forced: %s)",
-                    target_cmnd,
-                    esxi_host.summary.config.name,
-                    force,
-                )
+                esxi_host.RebootHost_Task(force)
+
+            _LOGGER.info(
+                "Sending %s command to %s (forced: %s)",
+                target_cmnd,
+                esxi_host.summary.config.name,
+                force,
+            )
     except vmodl.MethodFault as error:
         _LOGGER.info(error.msg)
     except vmodl.HostConfigFault as error:
@@ -338,6 +342,8 @@ def host_pwr(hass, target_host, target_cmnd, conn_details, force):
         _LOGGER.info(error.msg)
     finally:
         esx_disconnect(conn)
+
+    return True
 
 
 def host_pwr_policy(host, host_cmnd, conn_details):
@@ -352,7 +358,8 @@ def host_pwr_policy(host, host_cmnd, conn_details):
 
     if len(data) > 1:
         _LOGGER.warning(
-            "Multiple hosts found. This likely indicates vCenter. Skipping..."
+            "Multiple hosts found. This likely indicates vCenter. "
+            "Host Power Policy command does not support vCenter, yet. Skipping..."
         )
         return True
 
