@@ -176,12 +176,12 @@ def get_datastore_info(datastore):
     return ds_data
 
 
-def get_vm_info(vm):
+def get_vm_info(virtual_machine):
     """Get VM information."""
-    vm_conf = vm.configStatus
-    vm_sum = vm.summary
-    vm_run = vm.runtime
-    vm_snap = vm.snapshot
+    vm_conf = virtual_machine.configStatus
+    vm_sum = virtual_machine.summary
+    vm_run = virtual_machine.runtime
+    vm_snap = virtual_machine.snapshot
 
     vm_name = vm_sum.config.name.replace(" ", "_").lower()
 
@@ -320,7 +320,7 @@ def host_pwr(hass, target_host, target_cmnd, conn_details, force):
                     "Sending %s command to %s (forced: %s)",
                     target_cmnd,
                     esxi_host.summary.config.name,
-                    force
+                    force,
                 )
             if target_cmnd == "reboot":
                 # esxi_host.RebootHost_Task(force)
@@ -328,7 +328,7 @@ def host_pwr(hass, target_host, target_cmnd, conn_details, force):
                     "Sending %s command to %s (forced: %s)",
                     target_cmnd,
                     esxi_host.summary.config.name,
-                    force
+                    force,
                 )
     except vmodl.MethodFault as error:
         _LOGGER.info(error.msg)

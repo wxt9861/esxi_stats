@@ -320,7 +320,7 @@ def async_add_services(hass, config_entry):
 
         raise ValueError("Host is not configured in HomeAssistant")
 
-    # Host shutdown
+    # Host shutdown service
     async def host_power(call):
         host = call.data["host"]
         cmnd = call.data["command"]

@@ -1,6 +1,6 @@
 """Constants for ESXi Stats."""
 DOMAIN = "esxi_stats"
-DOMAIN_DATA = "{}_data".format(DOMAIN)
+DOMAIN_DATA = f"{DOMAIN}_data"
 
 PLATFORMS = ["sensor"]
 REQUIRED_FILES = [
@@ -46,7 +46,7 @@ DEFAULT_OPTIONS = {
     "vmhost": "vms",
     "license": "status",
     "vm": "state",
-    "notify": "true"
+    "notify": "true",
 }
 
 DATASTORE_STATES = [
@@ -57,10 +57,7 @@ DATASTORE_STATES = [
     "virtual _machines",
 ]
 
-LICENSE_STATES = [
-    "expiration_days",
-    "status"
-]
+LICENSE_STATES = ["expiration_days", "status"]
 
 VMHOST_STATES = [
     "cpuusage_ghz",
@@ -68,7 +65,7 @@ VMHOST_STATES = [
     "state",
     "uptime_hours",
     "vms",
-    "shutdown_supported"
+    "shutdown_supported",
 ]
 
 VM_STATES = [
@@ -78,7 +75,7 @@ VM_STATES = [
     "status",
     "state",
     "uptime_hours",
-    "used_space_gb"
+    "used_space_gb",
 ]
 
 MAP_TO_MEASUREMENT = {
@@ -90,7 +87,7 @@ MAP_TO_MEASUREMENT = {
     "total_space_gb": "Total (GB)",
     "uptime_hours": "Uptime (H)",
     "virtual_machines": "VMs",
-    "vms": "VMs"
+    "vms": "VMs",
 }
 
 SUPPORTED_PRODUCTS = ["VMware ESX Server", "VMware VirtualCenter Server"]
