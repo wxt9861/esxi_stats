@@ -1,0 +1,43 @@
+{
+    "config": {
+        "title": "ESXi Stats",
+        "step": {
+            "user": {
+                "title": "ESXi Stats",
+                "description": "Hvis du trenger hjelp med konfigurasjonen ta en titt her: https://github.com/wxt9861/esxi_stats/blob/master/README.md",
+                "data": {
+                    "host": "IP-adresse eller vertsnavn (FQDN)",
+                    "port": "Port",
+                    "username": "Brukernavn",
+                    "password": "Passord",
+                    "verify_ssl": "Verifiser SSL",
+                    "vmhost": "Hent informasjon om vertene",
+                    "datastore": "Hent informasjon om datalagerne",
+                    "license": "Hent informasjon om lisenser",
+                    "vm": "Hent informasjon om VM-er"
+                }
+            }
+        },
+        "error": {
+            "communication": "Kunne ikke aksessere ESXi med denne konfigurasjonen, sjekk verdiene."
+        },
+        "abort": {
+            "single_instance_allowed": "Bare en samtidig konfigurasjon av ESXi Stats er tillatt.",
+            "already_configured": "Denne verten/vCenter er allerede konfigurert."
+        }
+    },
+    "options": {
+        "step": {
+            "esxi_options":{
+                "data": {
+                    "vmhost": "Attributt for vertstilstand",
+                    "datastore": "Attributt for datalagertilstand",
+                    "license": "Attributt for lisenstilstand",
+                    "vm": "Attributt for virtuell maskin tilstand",
+                    "notify": "Lag notifikasjoner for tjenestekall"
+                },
+                "description": "Konfigurer hvilke atributter som bruks for ESXi sensor tilstander"
+            }
+        }
+    }
+}
