@@ -161,12 +161,16 @@ def connect(hass, config, entry):
             "port": config[DOMAIN]["port"],
             "ssl": config[DOMAIN]["verify_ssl"],
         }
-        conn = esx_connect(**conn_details)
-        _LOGGER.debug("Product Line: %s", conn.content.about.productLineId)
 
-        # get license type and objects
-        lic = check_license(conn.RetrieveContent().licenseManager)
-        hass.data[DOMAIN_DATA][entry]["client"].update_data()
+        conn = esx_connect(**conn_details)
+        if conn:
+            _LOGGER.debug("Product Line: %s", conn.content.about.productLineId)
+
+            # get license type and objects
+            lic = check_license(conn.RetrieveContent().licenseManager)
+            hass.data[DOMAIN_DATA][entry]["client"].update_data()
+        else:
+            lic = "n/a"
     except Exception as exception:  # pylint: disable=broad-except
         _LOGGER.error(exception)
         raise ConfigEntryNotReady from exception

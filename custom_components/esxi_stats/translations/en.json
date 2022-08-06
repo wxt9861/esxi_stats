@@ -14,7 +14,8 @@
                     "vmhost": "Get information about the hosts",
                     "datastore": "Get information about the datastores",
                     "license": "Get information about licenses",
-                    "vm": "Get information about the VMs"
+                    "vm": "Get information about the VMs",
+                    "notify": "Create service call notifications"
                 }
             }
         },
