@@ -203,7 +203,7 @@ class EsxiStats:
             conn = esx_connect(self.host, self.user, self.passwd, self.port, self.ssl)
             content = conn.RetrieveContent()
         except Exception as error:  # pylint: disable=broad-except
-            _LOGGER.error("ERROR: %s", error)
+            _LOGGER.debug("ESXi host is not reachable - skipping update - %s", error)
         else:
             # get host stats
             if self.config.get("vmhost") is True:
@@ -304,10 +304,10 @@ def async_add_services(hass, config_entry):
     """Add ESXi Stats services."""
 
     # Set notify here - but there has to be a better way
-    if config_entry.options["notify"]:
+    if config_entry.options["notify"] is not None:
         notify = config_entry.options["notify"]
     else:
-        notify: True
+        notify = True
 
     # Check that a host exists in HomeAssistant and get its credentials
     @callback
@@ -333,7 +333,9 @@ def async_add_services(hass, config_entry):
         if cmnd in AVAILABLE_CMND_HOST_POWER:
             try:
                 conn_details = async_get_conn_details(host)
-                await hass.async_add_executor_job(host_pwr, cmnd, conn_details, forc)
+                await hass.async_add_executor_job(
+                    host_pwr, hass, cmnd, conn_details, forc, notify
+                )
             except Exception as error:  # pylint: disable=broad-except
                 _LOGGER.error(str(error))
         else:

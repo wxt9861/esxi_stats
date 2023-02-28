@@ -92,7 +92,6 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
         datastore = True
         license = True
         vm = True
-        notify = True
 
         if user_input is not None:
             if "host" in user_input:
@@ -113,8 +112,6 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
                 license = user_input["license"]
             if "vm" in user_input:
                 vm = user_input["vm"]
-            if "notify" in user_input:
-                notify = user_input["notify"]
 
         data_schema = OrderedDict()
         data_schema[vol.Required("host", default=host)] = str
@@ -126,7 +123,6 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
         data_schema[vol.Optional("datastore", default=datastore)] = bool
         data_schema[vol.Optional("license", default=license)] = bool
         data_schema[vol.Optional("vm", default=vm)] = bool
-        data_schema[vol.Optional("notify", default=notify)] = bool
         return self.async_show_form(
             step_id="user", data_schema=vol.Schema(data_schema), errors=self._errors
         )

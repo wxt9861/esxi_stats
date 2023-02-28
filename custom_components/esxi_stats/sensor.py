@@ -91,7 +91,7 @@ class esxiSensor(Entity):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return "{} {} {}".format(DEFAULT_NAME, self._cond, self._obj)
+        return f"{DEFAULT_NAME} {self._cond} {self._obj}"
 
     @property
     def state(self):

@@ -220,7 +220,6 @@ def get_vm_info(virtual_machine):
 
     # set runtime related attributes based on vm power state
     if vm_state == "running":
-
         # check if stats exist and set values, otherwise return "n/a"
         if vm_sum.quickStats.overallCpuUsage and vm_run.maxCpuUsage:
             vm_cpu_usage = round(
@@ -310,7 +309,7 @@ def list_snapshots(snapshots, tree=False):
     return snapshot_data
 
 
-def host_pwr(target_cmnd, conn_details, force):
+def host_pwr(hass, target_cmnd, conn_details, force, notify):
     """Host power commands."""
     conn = esx_connect(**conn_details)
     content = conn.RetrieveContent()
@@ -330,10 +329,10 @@ def host_pwr(target_cmnd, conn_details, force):
     try:
         for esxi_host in esxi_hosts:
             if target_cmnd == "shutdown":
-                esxi_host.ShutdownHost_Task(force)
+                task = esxi_host.ShutdownHost_Task(force)
 
             if target_cmnd == "reboot":
-                esxi_host.RebootHost_Task(force)
+                task = esxi_host.RebootHost_Task(force)
 
             _LOGGER.info(
                 "Sending %s command to %s (forced: %s)",
@@ -341,6 +340,16 @@ def host_pwr(target_cmnd, conn_details, force):
                 esxi_host.summary.config.name,
                 force,
             )
+
+            if task:
+                message = (
+                    f"Sending {target_cmnd} to {esxi_host.summary.config.name} "
+                    f"(forced: {force})"
+                )
+                task_status(hass, task, message, notify)
+            else:
+                _LOGGER.info("'%s' task does not provide feedback", target_cmnd)
+            break
     except vmodl.MethodFault as error:
         _LOGGER.info(error.msg)
     except vmodl.HostConfigFault as error:
