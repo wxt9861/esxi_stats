@@ -61,7 +61,12 @@ HOST_PWR_SCHEMA = vol.Schema(
         vol.Required(FORCE): cv.boolean,
     }
 )
-
+HOST_PWR_POLICY_SCHEMA = vol.Schema(
+    {
+        vol.Required(HOST): cv.string,
+        vol.Required(COMMAND): cv.string
+    }
+)
 VM_PWR_SCHEMA = vol.Schema(
     {
         vol.Required(HOST): cv.string,
@@ -458,7 +463,7 @@ def async_add_services(hass, config_entry):
         DOMAIN,
         "host_power_policy",
         host_power_policy,
-        schema=HOST_PWR_SCHEMA,
+        schema=HOST_PWR_POLICY_SCHEMA,
     )
 
 
