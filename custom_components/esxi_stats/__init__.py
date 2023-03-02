@@ -304,10 +304,14 @@ def async_add_services(hass, config_entry):
     """Add ESXi Stats services."""
 
     # Set notify here - but there has to be a better way
-    if config_entry.options["notify"] is not None:
+    if (
+        "notify" in config_entry.options.keys()
+        and config_entry.options["notify"] is not None  # noqa: W503
+    ):
         notify = config_entry.options["notify"]
     else:
         notify = True
+        _LOGGER.debug("Notify key is missing. Setting notification to true")
 
     # Check that a host exists in HomeAssistant and get its credentials
     @callback
