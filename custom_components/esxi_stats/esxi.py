@@ -263,6 +263,7 @@ def get_vm_info(vm):
 
     vm_data = {
         "name": vm_name,
+        "vm_name": vm_vm_name,
         "status": vm_sum.overallStatus,
         "state": vm_state,
         "uptime_hours": vm_uptime,
