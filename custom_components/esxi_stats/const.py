@@ -76,7 +76,8 @@ VM_STATES = [
     "state",
     "uptime_hours",
     "used_space_gb",
-    "host_name"
+    "host_name",
+    "vm_name"
 ]
 
 MAP_TO_MEASUREMENT = {

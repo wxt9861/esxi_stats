@@ -179,7 +179,8 @@ def get_vm_info(vm):
     vm_snap = vm.snapshot
 
     vm_name = vm_sum.config.name.replace(" ", "_").lower()
-
+    vm_vm_name = vm_sum.config.name
+    
     # If a VM configuration is in INVALID state, return Inalid status
     if vm_conf == "red":
         vm_data = {
