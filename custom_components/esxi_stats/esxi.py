@@ -245,12 +245,20 @@ def get_vm_info(vm):
                 ("Unable to return Guest OS Name, using Configured Guest Name instead")
             )
             vm_guest_os = vm_sum.config.guestFullName
+            
+        if vm_sum.runtime.host.name:
+            vm_host_name = vm_sum.runtime.host.name
+        else:
+            vm_host_name = "n/a"
+            _LOGGER.debug("Unable to return Host Name for %s", vm_name)
+          
     else:
         vm_cpu_usage = "n/a"
         vm_mem_usage = "n/a"
         vm_ip = "n/a"
         vm_uptime = "n/a"
         vm_guest_os = vm_sum.config.guestFullName
+        vm_host_name = "n/a"
 
     vm_data = {
         "name": vm_name,
@@ -266,6 +274,7 @@ def get_vm_info(vm):
         "guest_os": vm_guest_os,
         "guest_ip": vm_ip,
         "snapshots": vm_snapshots,
+        "host_name": vm_host_name,
     }
 
     _LOGGER.debug(vm_data)
