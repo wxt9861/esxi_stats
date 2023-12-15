@@ -16,13 +16,15 @@ The component pulls the following information:
 
 - Hosts (sensor.esxi_stats_hosts)
 
-  - host name
-  - host version
-  - host uptime in hours
-  - host cpu total in MHz (core speed \* # of cores)
-  - host cpu usage in MHz
-  - host memory total in GB
-  - host memory usage in GB
+  - Host name
+  - Host version
+  - Host uptime in hours
+  - Host cpu total in MHz (core speed \* # of cores)
+  - Host cpu usage in MHz
+  - Host memory total in GB
+  - Host memory usage in GB
+  - Host power policy
+  - Host shutdown capability
   - Number of VMs on host
 
 - Datastores (sensor.esxi_stats_datastores)
@@ -51,11 +53,13 @@ The component pulls the following information:
   - CPU usage %
   - Configured memory in MB
   - Used memory in MB
+  - Active memory in MB
   - Storage used in GB
   - VM Tools status (tools running, not running, not install, etc)
   - VM guest OS
   - VM guest IP address (if VM has multiple, only primary will be shown)
   - Number of snapshots
+  - Power policy
 
 Sensor Example
 ![Datastore Sensor Example](examples/datastore_sensor_example.png)
@@ -129,6 +133,23 @@ To issue a command:
 2. Enter required data
 
 The following serivces are available:
+- **esxi_stats.host_power** - shutdown / reboot a VM Host **EARLY BETA, logging only**
+  ```json
+  {"host":"host/vCenter", "command": "shutdown/reboot"}
+  ```
+
+- **esxi_stats.host_power_policy** - set Power Policy on a VM Host
+  - Issuing this service against a vCenter with multiple hosts will **not** execute the command at this time.
+  - Power policy name shown in the ESXi/vCenter GUI does not match what ESXi host expects as input. You will need to figure out what Power Policies are availble on your host. One way to do that is to issue a service call with a random command string (like **test**). This will return a warning in Home Assistant log indicating that your selection is not valid, but will also display available policy names.
+  - Generic policies can be:
+    - **static** - High performance
+    - **dynamic** - Balanced
+    - **low** - Low power
+    - **custom** - Custom
+
+  ```json
+  { "host":"host/vCenter", "command":"power_policy_name"}
+  ````
 
 - **esxi_stats.vm_power** - on,off,reboot,reset,shutdown,suspend a VM
 

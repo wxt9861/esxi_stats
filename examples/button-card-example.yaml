@@ -1,3 +1,4 @@
+---
 ## Install button-card from here https://github.com/custom-cards/button-card
 resources:
   - url: /local/button-card.js
@@ -138,14 +139,14 @@ views:
                 </ha-icon><span> Version: <span style="color: var(--text-color-sensor);">
                   ${ states['sensor.<NAME_OF_SENSOR>'].attributes.version }
                 </span></span>`
-            ]]]                 
+            ]]]
           cpu_total: >
             [[[
               return `<ha-icon
                 icon="mdi:server"
                 style="width: 12px; height: 12px; color: deepskyblue;">
                 </ha-icon><span> CPU Cap: <span style="color: var(--text-color-sensor);">
-                ${ states['sensor.<NAME_OF_SENSOR>'].attributes.cpuusage_ghz } / 
+                ${ states['sensor.<NAME_OF_SENSOR>'].attributes.cpuusage_ghz } /
                 ${ states['sensor.<NAME_OF_SENSOR>'].attributes.cputotal_ghz } GHz</span></span>`
             ]]]
           mem_total: >
@@ -154,7 +155,7 @@ views:
                 icon="mdi:server"
                 style="width: 12px; height: 12px; color: deepskyblue;">
                 </ha-icon><span> Memory: <span style="color: var(--text-color-sensor);">
-                ${ states['sensor.<NAME_OF_SENSOR>'].attributes.memusage_gb } / 
+                ${ states['sensor.<NAME_OF_SENSOR>'].attributes.memusage_gb } /
                 ${ states['sensor.<NAME_OF_SENSOR>'].attributes.memtotal_gb } GB</span></span>`
             ]]]
 
@@ -179,7 +180,7 @@ views:
                 style="width: 12px; height: 12px; color: deepskyblue;">
                 </ha-icon><span> Capacity: <span style="color: var(--text-color-sensor);">
                 ${states['sensor.<NAME_OF_SENSOR>'].attributes.total_space_gb}</span></span>`
-            ]]]                 
+            ]]]
           hosts: >
             [[[
               return `<ha-icon
