@@ -137,6 +137,7 @@ def get_host_info(host):
         host_cpu_usage = "n/a"
         host_mem_total = "n/a"
         host_mem_usage = "n/a"
+        host_power_policy = "n/a"
         host_vms = "n/a"
 
         _LOGGER.debug("Unable to return stats for %s", host_name)
