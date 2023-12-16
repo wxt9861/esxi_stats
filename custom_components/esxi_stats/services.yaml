@@ -37,9 +37,6 @@ vm_power:
     vm:
       description: Name of the Virtual Machine
       example: 'vm_name'
-    vm_uuid:
-      description: UUID of the Virtual Machine
-      example: '423b8d56-1d42-e4ad-dd51-7e6340cebfc5'
     command:
       description: Power command to run against Virtual Machine
       example: 'on,off,reboot,reset,shutdown,suspend'
