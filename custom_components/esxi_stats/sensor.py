@@ -73,7 +73,8 @@ class esxiSensor(Entity):
 
         # Set attributes
         for key, value in self._data.items():
-            self._attr[key] = value
+            if key != "uuid":
+                self._attr[key] = value
 
     @property
     def unique_id(self):
