@@ -137,6 +137,7 @@ def get_host_info(host):
         host_cpu_usage = "n/a"
         host_mem_total = "n/a"
         host_mem_usage = "n/a"
+        host_power_policy = "n/a"
         host_vms = "n/a"
 
         _LOGGER.debug("Unable to return stats for %s", host_name)
@@ -192,7 +193,8 @@ def get_vm_info(virtual_machine):
     vm_snap = virtual_machine.snapshot
 
     vm_name = vm_sum.config.name.replace(" ", "_").lower()
-
+    vm_proper_name = vm_sum.config.name
+    
     # If a VM configuration is in INVALID state, return Inalid status
     if vm_conf == "red":
         vm_data = {"name": vm_name, "status": "Invalid"}
@@ -260,6 +262,13 @@ def get_vm_info(virtual_machine):
                 ("Unable to return Guest OS Name, using Configured Guest Name instead")
             )
             vm_guest_os = vm_sum.config.guestFullName
+            
+        if vm_sum.runtime.host.name:
+            vm_host_name = vm_sum.runtime.host.name
+        else:
+            vm_host_name = "n/a"
+            _LOGGER.debug("Unable to return Host Name for %s", vm_name)
+          
     else:
         vm_cpu_usage = "n/a"
         vm_mem_usage = "n/a"
@@ -267,9 +276,11 @@ def get_vm_info(virtual_machine):
         vm_ip = "n/a"
         vm_uptime = "n/a"
         vm_guest_os = vm_sum.config.guestFullName
+        vm_host_name = "n/a"
 
     vm_data = {
         "name": vm_name,
+        "vm_name": vm_proper_name,
         "status": vm_sum.overallStatus,
         "state": vm_state,
         "uptime_hours": vm_uptime,
