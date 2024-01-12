@@ -1,0 +1,44 @@
+{
+    "config": {
+        "title": "ESXi Stats",
+        "step": {
+            "user": {
+                "title": "ESXi Stats",
+                "description": "Αν χρειάζεστε βοήθεια με τις ρυθμίσεις, ρίξτε μια ματιά εδώ: https://github.com/wxt9861/esxi_stats/blob/master/README.md",
+                "data": {
+                    "host": "Διεύθυνση IP ή όνομα host (FQDN)",
+                    "port": "Θύρα",
+                    "username": "Όνομα χρήστη",
+                    "password": "Κωδικός",
+                    "verify_ssl": "Επαλήθευση SSL",
+                    "vmhost": "Λήψη πληροφοριών σχετικά με τους hosts",
+                    "datastore": "Λήψη πληροφοριών σχετικά με τα datastores",
+                    "license": "Λήψη πληροφοριών σχετικά με τις άδειες",
+                    "vm": "Λήψη πληροφοριών σχετικά με τα VMs",
+                    "notify": "Δημιουργία service call ειδοποιήσεων"
+                }
+            }
+        },
+        "error": {
+            "communication": "Αδυναμία πρόσβασης στον ESXi με αυτή τη ρύθμιση, ελέγξτε τα στοιχεία που δώσατε."
+        },
+        "abort": {
+            "single_instance_allowed": "Μόνο μία ρύθμιση για τα ESXi Stats επιτρέπεται.",
+            "already_configured": "Αυτός ο host/vCenter είναι ήδη ρυθμισμένος."
+        }
+    },
+    "options": {
+        "step": {
+            "esxi_options":{
+                "data": {
+                    "vmhost": "Χαρακτηριστικό Κατάστασης Host",
+                    "datastore": "Χαρακτηριστικό Κατάστασης Datastore",
+                    "license": "Χαρακτηριστικό Κατάστασης Αδειών",
+                    "vm": "Χαρακτηριστικό Κατάστασης Εικονικών Μηχανών",
+                    "notify": "Δημιουργία service call ειδοποιήσεων"
+                },
+                "description": "Ρυθμίστε ποια χαρακτηριστικά θα χρησιμοποιούνται σαν states για τους αιρθητήρες του ESXi"
+            }
+        }
+    }
+}
