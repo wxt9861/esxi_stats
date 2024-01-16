@@ -1,6 +1,6 @@
 {
+    "title": "ESXi Stats",
     "config": {
-        "title": "ESXi Stats",
         "step": {
             "user": {
                 "title": "ESXi Stats",
@@ -29,7 +29,7 @@
     },
     "options": {
         "step": {
-            "esxi_options":{
+            "esxi_options": {
                 "data": {
                     "vmhost": "Host State Attribute",
                     "datastore": "Datastore State Attribute",
@@ -38,6 +38,106 @@
                     "notify": "Create service call notifications"
                 },
                 "description": "Configure which attributes are used as states for ESXi sensors"
+            }
+        }
+    },
+    "services": {
+        "host_power": {
+            "name": "host_power",
+            "description": "Sends power commands to vCenter/ESXi Host",
+            "fields": {
+                "host": {
+                    "name": "host",
+                    "description": "Host/vCenter target"
+                },
+                "command": {
+                    "name": "command",
+                    "description": "Power command to run against ESXi host"
+                },
+                "force": {
+                    "name": "force",
+                    "description": "Flag to specify whether or not the host should be shut down/rebooted regardless of whether it is in maintenance mode. If true, the host is shut down/rebooted, even if there are virtual machines running or other operations in progress."
+                }
+            }
+        },
+        "host_power_policy": {
+            "name": "host_power_policy",
+            "description": "Changes ESXi Host Power Policy",
+            "fields": {
+                "host": {
+                    "name": "host",
+                    "description": "Host on which to change Power Policy"
+                },
+                "command": {
+                    "name": "command",
+                    "description": "Type of power policy to apply"
+                }
+            }
+        },
+        "vm_power": {
+            "name": "vm_power",
+            "description": "Sends Virtual Machine power commands to vCenter/ESXi Host",
+            "fields": {
+                "host": {
+                    "name": "host",
+                    "description": "Host/vCenter where a Virtual Machine resides"
+                },
+                "command": {
+                    "name": "command",
+                    "description": "Power command to run against Virtual Machine"
+                },
+                "vm": {
+                    "name": "vm_power",
+                    "description": "Name of the Virtual Machine"
+                }
+            }
+        },
+        "create_snapshot": {
+            "name": "create_snapshot",
+            "description": "Sends a command to vCenter/ESXi Host to take a Virtual Machine snapshot. For detailed information about snapshots see https://kb.vmware.com/s/article/1015180",
+            "fields": {
+                "host": {
+                    "name": "host",
+                    "description": "Host/vCenter where a Virtual Machine resides"
+                },
+                "vm": {
+                    "name": "vm",
+                    "description": "Name of the Virtual Machine"
+                },
+                "name": {
+                    "name": "name",
+                    "description": "Name of the snapshot"
+                },
+                "description": {
+                    "name": "description",
+                    "description": "(OPTIONAL) A description for this snapshot"
+                },
+                "memory": {
+                    "name": "memory",
+                    "description": "(OPTIONAL) Take snapshot with memory dump"
+                },
+                "quiesce": {
+                    "name": "quiesce",
+                    "description": "(OPTIONAL) Quiesce VM's file system. Only used if VM is running and VM Tools are installed."
+                }
+            }
+        },
+        "remove_snapshot": {
+            "name": "remove_snapshot",
+            "description": "Sends a command to vCenter/ESXi Host to remove a Virtual Machine snapshot",
+            "fields": {
+                "host": {
+                    "name": "host",
+                    "description": "Host/vCenter where a Virtual Machine resides"
+                },
+                "command": {
+                    "name": "command",
+                    "description": "Which snapshot to remove"
+                },
+                "vm": {
+                    "name": "vm",
+                    "description": "Name of the Virtual Machine"
+                }
             }
         }
     }

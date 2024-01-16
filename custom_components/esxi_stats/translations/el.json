@@ -1,6 +1,6 @@
 {
+    "title": "ESXi Stats",
     "config": {
-        "title": "ESXi Stats",
         "step": {
             "user": {
                 "title": "ESXi Stats",
