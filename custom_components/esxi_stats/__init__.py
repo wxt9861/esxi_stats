@@ -139,10 +139,7 @@ async def async_setup_entry(hass, config_entry):
     lic = await hass.async_add_executor_job(connect, hass, config, entry)
 
     # load platforms
-    for platform in PLATFORMS:
-        hass.async_add_job(
-            hass.config_entries.async_forward_entry_setup(config_entry, platform)
-        )
+    await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
 
     # if lisense allows API write, register services
     if lic:
