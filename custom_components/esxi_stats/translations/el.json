@@ -40,5 +40,105 @@
                 "description": "Ρυθμίστε ποια χαρακτηριστικά θα χρησιμοποιούνται σαν states για τους αισθητήρες του ESXi"
             }
         }
+    },
+    "services": {
+        "host_power": {
+            "name": "host_power",
+            "description": "Στέλνει εντολές ενέργειας στο vCenter/ESXi Host",
+            "fields": {
+                "host": {
+                    "name": "host",
+                    "description": "Host/vCenter προορισμού"
+                },
+                "command": {
+                    "name": "command",
+                    "description": "Εντολή ενέργειας προς εκτέλεση στον ESXi host"
+                },
+                "force": {
+                    "name": "force",
+                    "description": "Σήμανση που ορίζει αν ο host θα πρέπει ή όχι να κάνει τερματισμό λειτουργίας/επανεκκίνηση ανεξάρτητα από το αν είναι σε maintenance mode. Αν είναι αληθές, ο host θα κάνει τερματισμό λειτουργίας/επανεκκίνση , ακόμα και αν υπάρχουν εικονικές μηχανές σε λειτουργία ή αν υπάρχουν άλλες εργασίες σε εξέλιξη."
+                }
+            }
+        },
+        "host_power_policy": {
+            "name": "host_power_policy",
+            "description": "Αλλάζει το Power Policy του ESXi Host",
+            "fields": {
+                "host": {
+                    "name": "host",
+                    "description": "Host στον οποίο θα αλλάξει το Power Policy"
+                },
+                "command": {
+                    "name": "command",
+                    "description": "Τύπος power policy προς εφαρμογή"
+                }
+            }
+        },
+        "vm_power": {
+            "name": "vm_power",
+            "description": "Στέλνει εντολές ενέργειας Εικονικών Μηχανών στο vCenter/ESXi Host",
+            "fields": {
+                "host": {
+                    "name": "host",
+                    "description": "Host/vCenter στον οποίο βρίσκεται η Εικονική Μηχανή"
+                },
+                "command": {
+                    "name": "command",
+                    "description": "Εντολή ενέργειας που θα εκτελεστεί στην Εικονική Μηχανή"
+                },
+                "vm": {
+                    "name": "vm_power",
+                    "description": "Όνομα της Εικονικής Μηχανής"
+                }
+            }
+        },
+        "create_snapshot": {
+            "name": "create_snapshot",
+            "description": "Στέλνει μια εντολή στο vCenter/ESXi Host για λήψη snapshot μιας Εικονικής Μηχανής. Για λεπτομερείς πληροφορίες σχετικά με τα snapshot δείτε στο https://kb.vmware.com/s/article/1015180",
+            "fields": {
+                "host": {
+                    "name": "host",
+                    "description": "Host/vCenter στον οποίο βρίσκεται η Εικονική Μηχανή"
+                },
+                "vm": {
+                    "name": "vm",
+                    "description": "Όνομα της Εικονικής Μηχανής"
+                },
+                "name": {
+                    "name": "name",
+                    "description": "Όνομα του snapshot"
+                },
+                "description": {
+                    "name": "description",
+                    "description": "(ΠΡΟΑΙΡΕΤΙΚΟ) Μια περιγραφή για αυτό το snapshot"
+                },
+                "memory": {
+                    "name": "memory",
+                    "description": "(ΠΡΟΑΙΡΕΤΙΚΟ) Λήψη snapshot με dump μνήμης"
+                },
+                "quiesce": {
+                    "name": "quiesce",
+                    "description": "(ΠΡΟΑΙΡΕΤΙΚΟ) Κάνε Quiesce το σύστημα αρχείων του VM. Χρησιμοποιείται μόνο αν το VM είναι σε λειτουργία και τα VM Tools είναι εγκατεστημένα."
+                }
+            }
+        },
+        "remove_snapshot": {
+            "name": "remove_snapshot",
+            "description": "Στέλνει εντολή στο vCenter/ESXi Host για διαγραφή του snapshot ενός VM",
+            "fields": {
+                "host": {
+                    "name": "host",
+                    "description": "Host/vCenter στον οποίο βρίσκεται η Εικονική Μηχανή"
+                },
+                "command": {
+                    "name": "command",
+                    "description": "Ποιο snapshot να διαγραφεί"
+                },
+                "vm": {
+                    "name": "vm",
+                    "description": "Όνομα της Εικονικής Μηχανής"
+                }
+            }
+        }
     }
 }
