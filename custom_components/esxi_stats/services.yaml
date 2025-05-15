@@ -8,13 +8,13 @@ host_power:
       example: 192.168.1.1
     command:
       description: Power command to run against ESXi host
-      example: 'reboot,shutdown'
+      example: 'reboot|shutdown'
     force:
       description: |
         Flag to specify whether or not the host should be shut down/rebooted regardless
         of whether it is in maintenance mode. If true, the host is shut down/rebooted,
         even if there are virtual machines running or other operations in progress.
-      example: 'true, false'
+      example: 'true|false'
 
 host_power_policy:
   name: Host Power Policy
@@ -25,7 +25,7 @@ host_power_policy:
       example: 192.168.1.1
     command:
       description: Type of power policy to apply
-      example: 'balanced'
+      example: 'static|dynamic|low'
 
 vm_power:
   name: Virtual Machine Power
@@ -39,7 +39,7 @@ vm_power:
       example: 'vm_name'
     command:
       description: Power command to run against Virtual Machine
-      example: 'on,off,reboot,reset,shutdown,suspend'
+      example: 'on|off|reboot|reset|shutdown|suspend'
 
 create_snapshot:
   name: Create Virtual Machine Snapshot
@@ -61,12 +61,12 @@ create_snapshot:
       example: 'snapshot before big breaking change'
     memory:
       description: (OPTIONAL) Take snapshot with memory dump
-      example: 'true/false (default: false)'
+      example: 'true|false (default: false)'
     quiesce:
       description: |
         (OPTIONAL) Quiesce VM's file system.
         Only used if VM is running and VM Tools are installed.
-      example: 'true/false (default: false)'
+      example: 'true|false (default: false)'
 
 remove_snapshot:
   name: Remove Virtual Machine Snapshot
@@ -81,4 +81,4 @@ remove_snapshot:
       example: 'vm_name'
     command:
       description: Which snapshot to remove
-      example: 'all/first/last'
+      example: 'all|first|last'
