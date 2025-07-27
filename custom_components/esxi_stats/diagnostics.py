@@ -25,7 +25,6 @@ async def async_get_config_entry_diagnostics(
     diag["config"] = config_entry.as_dict()
 
     for entity in entities.items():
-        print(entity)
         diag["storage_data"] = entity
 
     return async_redact_data(diag, REDACT_KEYS)

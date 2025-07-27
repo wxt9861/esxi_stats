@@ -30,12 +30,11 @@
         "step": {
             "esxi_options":{
                 "data": {
-                    "vmhost": "Attributs d'état de l'hôte",
                     "datastore": "Attributs d'état du datastore",
                     "license": "Attributs d'état de la licence",
-                    "vm": "Attributs d'état de la machine virtuelle"
+                    "notify": "Créer des notifications d'appel de service"
                 },
-                "description": "Configurer les attributs utilisés comme états pour les capteurs ESXi."
+                "description": "Configurez les attributs d'état pour les capteurs de datastore et de licence."
             }
         }
     }

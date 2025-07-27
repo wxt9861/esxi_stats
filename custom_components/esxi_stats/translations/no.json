@@ -30,13 +30,11 @@
         "step": {
             "esxi_options":{
                 "data": {
-                    "vmhost": "Attributt for vertstilstand",
                     "datastore": "Attributt for datalagertilstand",
                     "license": "Attributt for lisenstilstand",
-                    "vm": "Attributt for virtuell maskin tilstand",
                     "notify": "Lag notifikasjoner for tjenestekall"
                 },
-                "description": "Konfigurer hvilke atributter som bruks for ESXi sensor tilstander"
+                "description": "Konfigurer tilstandsattributter for datalager- og lisensensorer."
             }
         }
     }

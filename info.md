@@ -1,12 +1,14 @@
-{% if prerelease %}
+# ESXi Stats Integration
 
-## This is a BETA version
+Complete ESXi and vCenter monitoring and management integration for Home Assistant.
 
-{% endif %}
+## Features
 
-# **Breaking Changes in 0.5.1**
-
-## VM sensor attribute cpu_use_% has been changed to cpu_use_pct. If you have custom sensors relying on this attribute, please modify them to reflect new attribute name
+- **Full vCenter Support**: Monitor and control multiple ESXi hosts through vCenter
+- **UI Controls**: VM power switches, host reboot buttons, and power policy selectors
+- **Service Calls**: Host power management, VM operations, and snapshot management
+- **Comprehensive Monitoring**: Host, datastore, license, and VM information
+- **Production Ready**: Enhanced error handling and safety mechanisms
 
 # Configuration options
 
@@ -20,14 +22,22 @@
 
 ESXi Stats can be configured via Integrations UI
 
-## Integration page
+## Integration Setup
 
-1. From Home Assistant UI go to Confinguration > Integrations
+1. From Home Assistant UI go to Configuration > Integrations
 2. Click the orange + icon at the bottom right to bring up new integration window
 3. Find and click on ESXi Stats
 4. Enter required information/select wanted stats and click Submit
 
-To enable debug
+## UI Controls
+
+After setup, you'll have access to:
+- **VM Power Switches**: Control individual virtual machines
+- **Host Power Switches**: Safely shutdown ESXi hosts
+- **Host Reboot Buttons**: Restart ESXi hosts with safety checks
+- **Power Policy Selectors**: Change host power management policies
+
+## Debug Logging
 
 ```yaml
 logger:

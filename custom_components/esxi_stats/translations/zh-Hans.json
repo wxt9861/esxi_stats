@@ -4,7 +4,7 @@
         "step": {
             "user": {
                 "title": "ESXi Stats",
-                "description": "如果您需要配置方面的帮助，请查看此处: https://github.com/wxt9861/esxi_stats/blob/master/README.md",
+                "description": "如果您需要配置帮助，请看这里：https://github.com/wxt9861/esxi_stats/blob/master/README.md",
                 "data": {
                     "host": "IP地址或者主机名 (FQDN)",
                     "port": "端口",
@@ -30,12 +30,11 @@
         "step": {
             "esxi_options":{
                 "data": {
-                    "vmhost": "主机状态属性",
                     "datastore": "数据存储状态属性",
                     "license": "许可证状态属性",
-                    "vm": "虚拟机状态属性"
+                    "notify": "创建服务调用通知"
                 },
-                "description": "配置哪些属性用作ESXi传感器的状态"
+                "description": "配置数据存储和许可证传感器的状态属性。"
             }
         }
     }
