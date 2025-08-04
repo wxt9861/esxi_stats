@@ -98,7 +98,6 @@ class ESXiVMSwitch(SwitchEntity):
             "name": f"VM {vm_proper_name}",
             "manufacturer": "VMware",
             "model": "Virtual Machine",
-            "via_device": (DOMAIN, self.config["host"]),
         }
 
     @property
@@ -265,7 +264,6 @@ class ESXiHostSwitch(SwitchEntity):
             "name": f"ESXi Host {self._host_name.replace('_', ' ').title()}",
             "manufacturer": "VMware",
             "model": "ESXi Host",
-            "via_device": (DOMAIN, self.config["host"]),
         }
 
     @property
