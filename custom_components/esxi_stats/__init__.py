@@ -34,6 +34,8 @@ from .esxi import (
     vm_pwr,
     vm_snap_take,
     vm_snap_remove,
+    list_esxi_hosts,
+    list_power_policies,
 )
 
 from .const import (
@@ -47,6 +49,7 @@ from .const import (
     PLATFORMS,
     REQUIRED_FILES,
     HOST,
+    TARGET_HOST,
     VM,
     FORCE,
 )
@@ -57,14 +60,27 @@ MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=45)
 HOST_PWR_SCHEMA = vol.Schema(
     {
         vol.Required(HOST): cv.string,
+        vol.Optional(TARGET_HOST): cv.string,
         vol.Required(COMMAND): cv.string,
         vol.Required(FORCE): cv.boolean,
+    }
+)
+LIST_HOSTS_SCHEMA = vol.Schema(
+    {
+        vol.Required(HOST): cv.string,
+    }
+)
+LIST_POWER_POLICIES_SCHEMA = vol.Schema(
+    {
+        vol.Required(HOST): cv.string,
+        vol.Optional(TARGET_HOST): cv.string,
     }
 )
 HOST_PWR_POLICY_SCHEMA = vol.Schema(
     {
         vol.Required(HOST): cv.string,
-        vol.Required(COMMAND): cv.string
+        vol.Required(COMMAND): cv.string,
+        vol.Optional(TARGET_HOST): cv.string,
     }
 )
 VM_PWR_SCHEMA = vol.Schema(
@@ -155,6 +171,7 @@ async def async_setup_entry(hass, config_entry):
 
 def connect(hass, config, entry):
     """Connect."""
+    conn = None
     try:
         conn_details = {
             "host": config[DOMAIN]["host"],
@@ -177,7 +194,8 @@ def connect(hass, config, entry):
         _LOGGER.error(exception)
         raise ConfigEntryNotReady from exception
     finally:
-        esx_disconnect(conn)
+        if conn:
+            esx_disconnect(conn)
 
     return lic
 
@@ -209,7 +227,7 @@ class EsxiStats:
         else:
             # get host stats
             if self.config.get("vmhost") is True:
-                # create/distroy view objects
+                # create/destroy view objects
                 host_objview = content.viewManager.CreateContainerView(
                     content.rootFolder, [vim.HostSystem], True
                 )
@@ -228,7 +246,7 @@ class EsxiStats:
 
             # get datastore stats
             if self.config.get("datastore") is True:
-                # create/distroy view objects
+                # create/destroy view objects
                 ds_objview = content.viewManager.CreateContainerView(
                     content.rootFolder, [vim.Datastore], True
                 )
@@ -248,19 +266,134 @@ class EsxiStats:
             # get license stats
             if self.config.get("license") is True:
                 lic_list = content.licenseManager
-                _count = 1
 
-                _LOGGER.debug("Found %s license(s)", len(lic_list.licenses))
+                # Get all hosts for better context
+                host_objview = content.viewManager.CreateContainerView(
+                    content.rootFolder, [vim.HostSystem], True
+                )
+                esxi_hosts = host_objview.view
+                host_objview.Destroy()
+
+                _LOGGER.debug("Found %s license(s) and %s host(s)", len(lic_list.licenses), len(esxi_hosts))
+
+                # Collect host names for reference
+                host_names = []
+                for esxi_host in esxi_hosts:
+                    host_names.append({
+                        'name': esxi_host.summary.config.name.replace(" ", "_").lower(),
+                        'original_name': esxi_host.summary.config.name
+                    })
+
+                # Process each license and assign meaningful names
+                vcenter_license_count = 0
+                esxi_license_count = 0
+                other_license_count = 0
+                processed_license_keys = set()  # Track processed license keys to avoid duplicates
+                valid_licenses = []  # Collect valid licenses first (skip only clearly invalid products)
+
+                # First pass: collect all valid licenses (skip only clearly invalid ones)
                 for lic in lic_list.licenses:
-                    _LOGGER.debug("Getting stats for licenses")
-                    self.hass.data[DOMAIN_DATA][self.entry]["license"][
-                        _count
-                    ] = get_license_info(lic, self.host)
-                    _count += 1
+                    product_name = None  # Start with None to detect missing ProductName
+                    license_key = getattr(lic, 'licenseKey', None) or getattr(lic, 'name', None)
+                    license_name = getattr(lic, 'name', '')
 
-            # get vm stats
+                    for key in lic.properties:
+                        if key.key == "ProductName":
+                            product_name = key.value
+                            break
+
+                    _LOGGER.debug("Checking license: name='%s', product='%s'", license_name, product_name)
+
+                    # Skip licenses without a valid ProductName (will result in product='n/a' in entity)
+                    if product_name is None or product_name == "n/a":
+                        _LOGGER.warning("Filtering out invalid license: name='%s', product='%s'", license_name, product_name)
+                        continue
+
+                    valid_licenses.append(lic)
+
+                # Second pass: process valid licenses
+                for lic in valid_licenses:
+                    # Determine product type for better naming
+                    product_name = "unknown"
+                    license_key = getattr(lic, 'licenseKey', None) or getattr(lic, 'name', None)
+                    license_name = getattr(lic, 'name', '')
+
+                    for key in lic.properties:
+                        if key.key == "ProductName":
+                            product_name = key.value
+                            break
+
+                    product_name_lower = product_name.lower()
+
+                    # Skip if we've already processed this license key (same license used by multiple hosts)
+                    if license_key and license_key in processed_license_keys:
+                        continue
+
+                    # Determine entity name based on product and environment
+                    if "vcenter" in product_name_lower or "vpx" in product_name_lower or "virtualcenter" in product_name_lower:
+                        # vCenter Server license - create one entity
+                        entity_name = "vcenter_license"
+                        associated_host = self.host  # vCenter server itself
+
+                        # Mark this license key as processed
+                        if license_key:
+                            processed_license_keys.add(license_key)
+
+                        _LOGGER.debug("Created vCenter license entity")
+                        self.hass.data[DOMAIN_DATA][self.entry]["license"][
+                            entity_name
+                        ] = get_license_info(lic, associated_host)
+
+                    elif ("esx" in product_name_lower or
+                          "vmware_esx" in product_name_lower or
+                          product_name_lower.startswith("vmware esx") or
+                          "esxi" in product_name_lower):
+                        # ESXi host license - create separate entities for each host, even with shared licenses
+                        for host_info in host_names:
+                            entity_name = f"{host_info['name']}_license"
+                            associated_host = host_info['original_name']
+
+                            self.hass.data[DOMAIN_DATA][self.entry]["license"][
+                                entity_name
+                            ] = get_license_info(lic, associated_host)
+
+                        # Mark this license key as processed
+                        if license_key:
+                            processed_license_keys.add(license_key)
+                        esxi_license_count += 1
+                    else:
+                        # Other/unknown license types
+                        _LOGGER.warning("Unknown license product type: '%s' - please report this for better detection", product_name)
+                        other_license_count += 1
+
+                        # For unknown licenses, create entities for each host if we have hosts
+                        if len(esxi_hosts) > 0:
+                            _LOGGER.info("Treating unknown license as ESXi license for hosts: %s", ", ".join([host['original_name'] for host in host_names]))
+                            for host_info in host_names:
+                                entity_name = f"{host_info['name']}_unknown_license_{other_license_count}"
+                                associated_host = host_info['original_name']
+
+                                self.hass.data[DOMAIN_DATA][self.entry]["license"][
+                                    entity_name
+                                ] = get_license_info(lic, associated_host)
+                        else:
+                            # No hosts - create generic entity
+                            clean_product = product_name_lower.replace(" ", "_").replace("-", "_")
+                            if clean_product == "unknown":
+                                entity_name = f"unknown_license_{other_license_count}"
+                            else:
+                                entity_name = f"{clean_product}_license"
+                            associated_host = self.host
+
+                            self.hass.data[DOMAIN_DATA][self.entry]["license"][
+                                entity_name
+                            ] = get_license_info(lic, associated_host)
+
+                        # Mark this license key as processed
+                        if license_key:
+                            processed_license_keys.add(license_key)            # get vm stats
             if self.config.get("vm") is True:
-                # create/distroy view objects
+                # create/destroy view objects
                 vm_objview = content.viewManager.CreateContainerView(
                     content.rootFolder, [vim.VirtualMachine], True
                 )
@@ -333,6 +466,7 @@ def async_add_services(hass, config_entry):
     # Host shutdown service
     async def host_power(call):
         host = call.data["host"]
+        target_host = call.data.get("target_host")  # Optional for vCenter multi-host
         cmnd = call.data["command"]
         forc = call.data["force"]
 
@@ -340,12 +474,36 @@ def async_add_services(hass, config_entry):
             try:
                 conn_details = async_get_conn_details(host)
                 await hass.async_add_executor_job(
-                    host_pwr, hass, cmnd, conn_details, forc, notify
+                    host_pwr, hass, target_host, cmnd, conn_details, forc, notify
                 )
             except Exception as error:  # pylint: disable=broad-except
                 _LOGGER.error(str(error))
         else:
             _LOGGER.error("host_power: '%s' is not a supported command", cmnd)
+
+    # List hosts service (useful for vCenter environments)
+    async def list_hosts(call):
+        host = call.data["host"]
+
+        try:
+            conn_details = async_get_conn_details(host)
+            await hass.async_add_executor_job(
+                list_esxi_hosts, hass, conn_details
+            )
+        except Exception as error:  # pylint: disable=broad-except
+            _LOGGER.error(str(error))
+
+    async def list_power_policies(call):
+        host = call.data["host"]
+        target_host = call.data.get("target_host")
+
+        try:
+            conn_details = async_get_conn_details(host)
+            await hass.async_add_executor_job(
+                list_power_policies, hass, target_host, conn_details
+            )
+        except Exception as error:  # pylint: disable=broad-except
+            _LOGGER.error(str(error))
 
     @callback
     def async_get_vm_details(vm_name):
@@ -359,10 +517,11 @@ def async_add_services(hass, config_entry):
     async def host_power_policy(call):
         host = call.data["host"]
         cmnd = call.data["command"]
+        target_host = call.data.get("target_host")
 
         try:
             conn_details = async_get_conn_details(host)
-            await hass.async_add_executor_job(host_pwr_policy, host, cmnd, conn_details)
+            await hass.async_add_executor_job(host_pwr_policy, target_host, cmnd, conn_details)
         except Exception as error:  # pylint: disable=broad-except
             _LOGGER.error(str(error))
 
@@ -392,6 +551,7 @@ def async_add_services(hass, config_entry):
         memory = False
         quiesce = False
         now = datetime.now()
+        name = f"snapshot_{now.strftime('%Y%m%d_%H%M%S')}"  # Default name
         desc = "Taken from HASS (" + HAVERSION + ") on " + now.strftime("%x %X")
 
         if "name" in call.data:
@@ -449,6 +609,12 @@ def async_add_services(hass, config_entry):
     hass.services.async_register(DOMAIN, "vm_power", vm_power, schema=VM_PWR_SCHEMA)
     hass.services.async_register(
         DOMAIN, "host_power", host_power, schema=HOST_PWR_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, "list_hosts", list_hosts, schema=LIST_HOSTS_SCHEMA
+    )
+    hass.services.async_register(
+        DOMAIN, "list_power_policies", list_power_policies, schema=LIST_POWER_POLICIES_SCHEMA
     )
     hass.services.async_register(
         DOMAIN, "create_snapshot", snap_create, schema=SNAP_CREATE_SCHEMA

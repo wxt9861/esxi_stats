@@ -4,7 +4,7 @@
         "step": {
             "user": {
                 "title": "ESXi Stats",
-                "description": "Αν χρειάζεστε βοήθεια με τις ρυθμίσεις, ρίξτε μια ματιά εδώ: https://github.com/wxt9861/esxi_stats/blob/master/README.md",
+                "description": "Εάν χρειάζεστε βοήθεια για τη διαμόρφωση ρίξτε μια ματιά εδώ: https://github.com/wxt9861/esxi_stats/blob/master/README.md",
                 "data": {
                     "host": "Διεύθυνση IP ή όνομα host (FQDN)",
                     "port": "Θύρα",
@@ -31,13 +31,11 @@
         "step": {
             "esxi_options":{
                 "data": {
-                    "vmhost": "Χαρακτηριστικό Κατάστασης Host",
                     "datastore": "Χαρακτηριστικό Κατάστασης Datastore",
                     "license": "Χαρακτηριστικό Κατάστασης Αδειών",
-                    "vm": "Χαρακτηριστικό Κατάστασης Εικονικών Μηχανών",
                     "notify": "Δημιουργία service call ειδοποιήσεων"
                 },
-                "description": "Ρυθμίστε ποια χαρακτηριστικά θα χρησιμοποιούνται σαν states για τους αισθητήρες του ESXi"
+                "description": "Ρυθμίστε χαρακτηριστικά κατάστασης για αισθητήρες datastore και αδειών."
             }
         }
     },

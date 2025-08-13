@@ -6,7 +6,9 @@
 #                                                                                     #
 # You will need to get 'decluttering_card_templates.yaml' file, location in the same  #
 # location as this file                                                               #
-# User input is idenfied by '## CHANGE NEEDED' comments                               #
+# User input is identified by '## CHANGE NEEDED' comments                            #
+#                                                                                     #
+# NOTE: ESXi Stats creates individual sensors for each attribute                  #
 #######################################################################################
 
 ######## Add your resources. This example is based on HACS locations
@@ -37,8 +39,11 @@ views:
       template: vm_flex_template
       variables:
         ## CHANGE NEEDED BELOW
+        ## Replace with your actual VM sensor entity names
+        ## Individual sensors are now created for each attribute
+        ## Examples: sensor.<vm_name>_cpu_use_pct, sensor.<vm_name>_memory_used_pct
+        - entity: sensor.<vm_name>_cpu_use_pct  # Replace with actual VM CPU sensor
         ## In the example picture this is
         ## seen as 'DKR02' at the bottom
         ## of the card
-        - entity: sensor.<NAME_OF_THE_VM_SENSOR_HERE>
-        - name: <NAME>
+        - name: <VM_NAME>

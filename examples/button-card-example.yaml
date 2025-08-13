@@ -1,5 +1,6 @@
 ---
 ## Install button-card from here https://github.com/custom-cards/button-card
+## This example shows sensor display cards and UI controls for ESXi management
 resources:
   - url: /local/button-card.js
     type: module
@@ -116,9 +117,32 @@ views:
   - title: ESXi Stats example
     cards:
 
-      ## button card for a host. Uses esxi_stats_general and esxi_stats_hosts templates above
+      ## UI CONTROLS SECTION
+      ## ESXi Stats provides switches, buttons, and selectors for managing your infrastructure
+      - type: entities
+        title: ESXi Controls
+        entities:
+          # VM Power Switches - entity pattern: switch.{host}_{entry_id}_vm_switch_{vm_name}
+          # Example: switch.192_168_1_10_abc123_vm_switch_myvm
+          - switch.*_vm_switch_*
+          # Host Power Switches - entity pattern: switch.{host}_{entry_id}_host_switch_{host_name}
+          # Example: switch.192_168_1_10_abc123_host_switch_myhost
+          - switch.*_host_switch_*
+          # Host Reboot Buttons - entity pattern: button.{host}_{entry_id}_host_reboot_{host_name}
+          # Example: button.192_168_1_10_abc123_host_reboot_myhost
+          - button.*_host_reboot_*
+          # Power Policy Selectors - entity pattern: select.{host}_{entry_id}_select_power_policy_{host_name}
+          # Example: select.192_168_1_10_abc123_select_power_policy_myhost
+          - select.*_select_power_policy_*
+
+      ## SENSOR DISPLAY CARDS
+      ## ESXi Stats creates individual sensors for each attribute
+      ## Use your Home Assistant entities list to find the exact sensor names
+      ## Replace placeholders with your actual sensor entity names
+
+      ## button card for a host using individual sensors
       - type: custom:button-card
-        entity: sensor.<NAME_OF_SENSOR>
+        entity: sensor.<hostname>_name  # Replace with actual host name sensor
         name: <CARD NAME HERE>
         template: esxi_stats_hosts
         custom_fields:
@@ -128,7 +152,7 @@ views:
                 icon="mdi:server"
                 style="width: 12px; height: 12px; color: deepskyblue;">
                 </ha-icon><span><span style="color: var(--text-color-sensor);">
-                ${ states['sensor.<NAME_OF_SENSOR>'].attributes.uptime_hours } hours
+                ${ states['sensor.<hostname>_uptime_hours'].state } hours
                 </span></span>`
             ]]]
           version: >
@@ -137,7 +161,7 @@ views:
                 icon="mdi:server"
                 style="width: 12px; height: 12px; color: deepskyblue;">
                 </ha-icon><span> Version: <span style="color: var(--text-color-sensor);">
-                  ${ states['sensor.<NAME_OF_SENSOR>'].attributes.version }
+                ${ states['sensor.<hostname>_version'].state }
                 </span></span>`
             ]]]
           cpu_total: >
@@ -146,8 +170,8 @@ views:
                 icon="mdi:server"
                 style="width: 12px; height: 12px; color: deepskyblue;">
                 </ha-icon><span> CPU Cap: <span style="color: var(--text-color-sensor);">
-                ${ states['sensor.<NAME_OF_SENSOR>'].attributes.cpuusage_ghz } /
-                ${ states['sensor.<NAME_OF_SENSOR>'].attributes.cputotal_ghz } GHz</span></span>`
+                ${ states['sensor.<hostname>_cpuusage_ghz'].state } /
+                ${ states['sensor.<hostname>_cputotal_ghz'].state } GHz</span></span>`
             ]]]
           mem_total: >
             [[[
@@ -155,13 +179,14 @@ views:
                 icon="mdi:server"
                 style="width: 12px; height: 12px; color: deepskyblue;">
                 </ha-icon><span> Memory: <span style="color: var(--text-color-sensor);">
-                ${ states['sensor.<NAME_OF_SENSOR>'].attributes.memusage_gb } /
-                ${ states['sensor.<NAME_OF_SENSOR>'].attributes.memtotal_gb } GB</span></span>`
+                ${ states['sensor.<hostname>_memusage_gb'].state } /
+                ${ states['sensor.<hostname>_memtotal_gb'].state } GB</span></span>`
             ]]]
 
       ## button card for a datastore. Uses esxi_stats_general and esxi_stats_datastore templates above
+      ## Replace sensor.esxi_datastore_DATASTORENAME with your actual datastore sensor entity
       - type: custom:button-card
-        entity: sensor.<NAME_OF_SENSOR>
+        entity: sensor.esxi_datastore_<DATASTORENAME>
         name: <CARD NAME HERE>
         template: esxi_stats_datastores
         custom_fields:
@@ -171,7 +196,7 @@ views:
                 icon="mdi:server"
                 style="width: 12px; height: 12px; color: deepskyblue;">
                 </ha-icon><span><span style="color: var(--text-color-sensor);">
-                ${states['sensor.<NAME_OF_SENSOR>'].attributes.free_space_gb}</span></span>`
+                ${states['sensor.esxi_datastore_<DATASTORENAME>'].attributes.free_space_gb}</span></span>`
             ]]]
           capacity: >
             [[[
@@ -179,7 +204,7 @@ views:
                 icon="mdi:server"
                 style="width: 12px; height: 12px; color: deepskyblue;">
                 </ha-icon><span> Capacity: <span style="color: var(--text-color-sensor);">
-                ${states['sensor.<NAME_OF_SENSOR>'].attributes.total_space_gb}</span></span>`
+                ${states['sensor.esxi_datastore_<DATASTORENAME>'].attributes.total_space_gb}</span></span>`
             ]]]
           hosts: >
             [[[
@@ -187,7 +212,7 @@ views:
                 icon="mdi:server"
                 style="width: 12px; height: 12px; color: deepskyblue;">
                 </ha-icon><span> Hosts: <span style="color: var(--text-color-sensor);">
-                ${states['sensor.<NAME_OF_SENSOR>'].attributes.connected_hosts}</span></span>`
+                ${states['sensor.esxi_datastore_<DATASTORENAME>'].attributes.connected_hosts}</span></span>`
             ]]]
           vms: >
             [[[
@@ -195,21 +220,22 @@ views:
                 icon="mdi:server"
                 style="width: 12px; height: 12px; color: deepskyblue;">
                 </ha-icon><span> VMs: <span style="color: var(--text-color-sensor);">
-                ${states['sensor.<NAME_OF_SENSOR>'].attributes.virtual_machines}</span></span>`
+                ${states['sensor.esxi_datastore_<DATASTORENAME>'].attributes.virtual_machines}</span></span>`
             ]]]
 
-      ## button card for a virtual machine. Uses esxi_stats_general and esxi_stats_vm templates above
+      ## VM button card using individual sensors
+      ## Replace placeholders with your actual VM sensor names
       - type: custom:button-card
-        entity: sensor.<NAME_OF_SENSOR>
+        entity: sensor.<vm_name>_name  # Replace with actual VM name sensor
         name: <CARD NAME HERE>
         template: esxi_stats_vm
         styles:
           icon:
             - color: >
                 [[[
-                  if ( states['sensor.<NAME_OF_SENSOR>'].attributes.status == "green")
+                  if ( states['sensor.<vm_name>_status'].state == "green")
                     return "green";
-                  if ( states['sensor.<NAME_OF_SENSOR>'].attributes.status == "warning" )
+                  if ( states['sensor.<vm_name>_status'].state == "warning" )
                     return "yellow";
                   return "red";
                 ]]]
@@ -220,7 +246,7 @@ views:
                 icon="mdi:arrow-up"
                 style="width: 12px; height: 12px; color: deepskyblue;">
                 </ha-icon><span><span style="color: var(--text-color-sensor);">
-                ${states['sensor.<NAME_OF_SENSOR>'].attributes.<VM_NAME_HERE>.uptime_hours}</span></span>`
+                ${states['sensor.<vm_name>_uptime_hours'].state}</span></span>`
             ]]]
           cpu: >
             [[[
@@ -228,7 +254,7 @@ views:
                 icon="mdi:server"
                 style="width: 12px; height: 12px; color: deepskyblue;">
                 </ha-icon><span>CPU: <span style="color: var(--text-color-sensor);">
-                ${states['sensor.<NAME_OF_SENSOR>'].attributes.cpu_count}</span></span>`
+                ${states['sensor.<vm_name>_cpu_count'].state}</span></span>`
             ]]]
           ram: >
             [[[
@@ -236,7 +262,7 @@ views:
                 icon="mdi:memory"
                 style="width: 12px; height: 12px; color: deepskyblue;">
                 </ha-icon><span>Mem: <span style="color: var(--text-color-sensor);">
-                ${states['sensor.<NAME_OF_SENSOR>'].attributes.memory_allocated_mb} MB</span></span>`
+                ${states['sensor.<vm_name>_memory_allocated_mb'].state} MB</span></span>`
             ]]]
           state: >
             [[[
@@ -244,5 +270,5 @@ views:
                 icon="mdi:harddisk"
                 style="width: 12px; height: 12px; color: deepskyblue;">
                 </ha-icon><span>State: <span style="color: var(--text-color-sensor);">
-                ${states['sensor.<NAME_OF_SENSOR>'].attributes.state}</span></span>`
+                ${states['sensor.<vm_name>_state'].state}</span></span>`
             ]]]

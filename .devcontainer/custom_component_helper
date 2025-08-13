@@ -12,7 +12,7 @@ function StartHomeAssistant {
   hass -c /config
 }
 
-function UpdgradeHomeAssistantDev {
+function UpgradeHomeAssistantDev {
   python -m pip install --upgrade homeassistant
 }
 

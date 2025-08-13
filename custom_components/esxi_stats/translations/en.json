@@ -31,13 +31,11 @@
         "step": {
             "esxi_options": {
                 "data": {
-                    "vmhost": "Host State Attribute",
                     "datastore": "Datastore State Attribute",
                     "license": "License State Attribute",
-                    "vm": "Virtual Machine State Attribute",
                     "notify": "Create service call notifications"
                 },
-                "description": "Configure which attributes are used as states for ESXi sensors"
+                "description": "Configure state attributes for datastore and license sensors."
             }
         }
     },
@@ -87,7 +85,7 @@
                     "description": "Power command to run against Virtual Machine"
                 },
                 "vm": {
-                    "name": "vm_power",
+                    "name": "vm",
                     "description": "Name of the Virtual Machine"
                 }
             }

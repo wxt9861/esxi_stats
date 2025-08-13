@@ -6,6 +6,12 @@ host_power:
     host:
       description: Host/vCenter target
       example: 192.168.1.1
+    target_host:
+      description: |
+        (Optional) Specific ESXi host name to target when using vCenter with multiple hosts.
+        If not specified and only one host is available, that host will be used.
+        Required when vCenter manages multiple hosts.
+      example: 'esxi01.example.com'
     command:
       description: Power command to run against ESXi host
       example: 'reboot|shutdown'
@@ -16,16 +22,42 @@ host_power:
         even if there are virtual machines running or other operations in progress.
       example: 'true|false'
 
-host_power_policy:
-  name: Host Power Policy
-  description: Changes ESXi Host Power Policy
+list_hosts:
+  name: List ESXi Hosts
+  description: Lists all ESXi hosts available in vCenter (useful for discovering target_host names)
   fields:
     host:
-      description: Host on which to change Power Policy
+      description: Host/vCenter target
+      example: 192.168.1.1
+
+list_power_policies:
+  name: List Power Policies
+  description: Lists all available power policies for a specific ESXi host
+  fields:
+    host:
+      description: Host/vCenter target to connect to
+      example: 192.168.1.1
+    target_host:
+      description: >
+        (Optional for single ESXi, Required for vCenter) Specific ESXi host name to check policies for.
+        Use the 'list_hosts' service to discover available host names in vCenter.
+      example: 'esxi01.domain.com'
+
+host_power_policy:
+  name: Host Power Policy
+  description: Changes ESXi Host Power Policy (supports both ESXi and vCenter)
+  fields:
+    host:
+      description: Host/vCenter target to connect to
       example: 192.168.1.1
     command:
       description: Type of power policy to apply
       example: 'static|dynamic|low'
+    target_host:
+      description: >
+        (Optional for single ESXi, Required for vCenter) Specific ESXi host name to configure.
+        Use the 'list_hosts' service to discover available host names in vCenter.
+      example: 'esxi01.domain.com'
 
 vm_power:
   name: Virtual Machine Power

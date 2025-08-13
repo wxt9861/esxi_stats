@@ -1,5 +1,7 @@
 ---
 ## Install flex-table-card from here https://github.com/custom-cards/flex-table-card
+## ESXi Stats creates individual sensors for each attribute
+## Update entity patterns to match your actual sensor names
 resources:
   - url: /local/flex-table-card/flex-table-card.js
     type: js
@@ -10,57 +12,94 @@ views:
     cards:
       - type: vertical-stack
         cards:
+          # UI Controls Section
+          - type: horizontal-stack
+            cards:
+              - type: entities
+                title: VM Controls
+                entities:
+                  # VM Power Switches - Replace pattern with your actual switches
+                  - switch.*_vm_switch_*
+                  # VM Snapshot Buttons - Replace pattern with your actual buttons
+                  - button.*_vm_snapshot_*
+              - type: entities
+                title: Host Controls
+                entities:
+                  # Host Power Switches - Replace pattern with your actual switches
+                  - switch.*_host_switch_*
+                  # Host Reboot Buttons - Replace pattern with your actual buttons
+                  - button.*_host_reboot_*
+                  # Power Policy Selectors - Replace pattern with your actual selectors
+                  - select.*_power_policy
+
+          # Individual Host Sensors
           - type: custom:flex-table-card
             title: ESXi Hosts
             clickable: true
             entities:
-              include: sensor.esxi_vmhost*
+              # Include individual host sensors - replace with your actual sensor names
+              include: sensor.*_name  # Host name sensors
             columns:
               - name: Name
-                data: name
+                data: state
               - name: Version
-                data: version
+                data: state
+                entity_id: sensor.*_version
               - name: Uptime (H)
-                data: uptime_hours
+                data: state
+                entity_id: sensor.*_uptime_hours
               - name: CPU Use (GHz)
-                data: cpuusage_ghz
+                data: state
+                entity_id: sensor.*_cpuusage_ghz
               - name: Mem Use (GB)
-                data: memusage_gb
-              - name: VMs
-                data: vms
+                data: state
+                entity_id: sensor.*_memusage_gb
+          # Individual VM Sensors
           - type: custom:flex-table-card
             title: ESXi Virtual Machines
             clickable: true
             entities:
-              include: sensor.esxi_vm_*
+              # Include individual VM sensors - replace with your actual sensor names
+              include: sensor.*_name  # VM name sensors
             columns:
               - name: Name
-                data: name
+                data: state
               - name: Status
-                data: status
+                data: state
+                entity_id: sensor.*_status
               - name: State
                 data: state
+                entity_id: sensor.*_state
               - name: Uptime (H)
-                data: uptime_hours
+                data: state
+                entity_id: sensor.*_uptime_hours
               - name: CPU Usage (%)
-                data: cpu_use_pct
+                data: state
+                entity_id: sensor.*_cpu_use_pct
               - name: CPUs
-                data: cpu_count
+                data: state
+                entity_id: sensor.*_cpu_count
               - name: Mem Use (MB)
-                data: memory_used_mb
+                data: state
+                entity_id: sensor.*_memory_used_mb
               - name: Mem Total (MB)
-                data: memory_allocated_mb
+                data: state
+                entity_id: sensor.*_memory_allocated_mb
               - name: Storage Used (GB)
-                data: used_space_gb
+                data: state
+                entity_id: sensor.*_used_space_gb
               - name: VM Tools
-                data: tools_status
+                data: state
+                entity_id: sensor.*_tools_status
               - name: Snapshots
-                data: snapshots
+                data: state
+                entity_id: sensor.*_snapshots
+          # Datastore Sensors (still use legacy format)
           - type: custom:flex-table-card
             title: ESXi Datastores
             clickable: true
             entities:
-              include: sensor.esxi_datastore*
+              include: sensor.esxi_datastore_*
             columns:
               - name: Name
                 data: name

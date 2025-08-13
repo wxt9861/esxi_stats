@@ -1,6 +1,5 @@
-"""Adds config flow for ESXi Stats."""
+"""Config flow for esxi_stats integration."""
 import logging
-from collections import OrderedDict
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -8,20 +7,14 @@ from homeassistant.core import callback
 
 from .const import (
     CONF_DS_STATE,
-    CONF_HOST_STATE,
     CONF_LIC_STATE,
-    CONF_VM_STATE,
     CONF_NOTIFY,
     DOMAIN,
     DEFAULT_PORT,
     DEFAULT_DS_STATE,
-    DEFAULT_HOST_STATE,
     DEFAULT_LIC_STATE,
-    DEFAULT_VM_STATE,
     DATASTORE_STATES,
     LICENSE_STATES,
-    VMHOST_STATES,
-    VM_STATES,
 )
 from .esxi import esx_connect, esx_disconnect
 
@@ -30,7 +23,7 @@ _LOGGER = logging.getLogger(__name__)
 
 
 @config_entries.HANDLERS.register(DOMAIN)
-class ESXIiStatslowHandler(config_entries.ConfigFlow):
+class ESXiStatsFlowHandler(config_entries.ConfigFlow):
     """Config flow for ESXi Stats."""
 
     VERSION = 1
@@ -113,16 +106,17 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
             if "vm" in user_input:
                 vm = user_input["vm"]
 
-        data_schema = OrderedDict()
-        data_schema[vol.Required("host", default=host)] = str
-        data_schema[vol.Required("port", default=port)] = int
-        data_schema[vol.Required("username", default=username)] = str
-        data_schema[vol.Required("password", default=password)] = str
-        data_schema[vol.Optional("verify_ssl", default=verify_ssl)] = bool
-        data_schema[vol.Optional("vmhost", default=vmhost)] = bool
-        data_schema[vol.Optional("datastore", default=datastore)] = bool
-        data_schema[vol.Optional("license", default=license)] = bool
-        data_schema[vol.Optional("vm", default=vm)] = bool
+        data_schema = {
+            vol.Required("host", default=host): str,
+            vol.Required("port", default=port): int,
+            vol.Required("username", default=username): str,
+            vol.Required("password", default=password): str,
+            vol.Optional("verify_ssl", default=verify_ssl): bool,
+            vol.Optional("vmhost", default=vmhost): bool,
+            vol.Optional("datastore", default=datastore): bool,
+            vol.Optional("license", default=license): bool,
+            vol.Optional("vm", default=vm): bool,
+        }
         return self.async_show_form(
             step_id="user", data_schema=vol.Schema(data_schema), errors=self._errors
         )
@@ -171,10 +165,8 @@ class ESXiStatsOptionsFlow(config_entries.OptionsFlow):
     async def async_step_esxi_options(self, user_input=None):
         """Manage ESXi Stats Options."""
         if user_input is not None:
-            self.options[CONF_HOST_STATE] = user_input[CONF_HOST_STATE]
             self.options[CONF_DS_STATE] = user_input[CONF_DS_STATE]
             self.options[CONF_LIC_STATE] = user_input[CONF_LIC_STATE]
-            self.options[CONF_VM_STATE] = user_input[CONF_VM_STATE]
             self.options[CONF_NOTIFY] = user_input[CONF_NOTIFY]
             return self.async_create_entry(title="", data=self.options)
 
@@ -182,12 +174,6 @@ class ESXiStatsOptionsFlow(config_entries.OptionsFlow):
             step_id="esxi_options",
             data_schema=vol.Schema(
                 {
-                    vol.Optional(
-                        CONF_HOST_STATE,
-                        default=self.config_entry.options.get(
-                            CONF_HOST_STATE, DEFAULT_HOST_STATE
-                        ),
-                    ): vol.In(VMHOST_STATES),
                     vol.Optional(
                         CONF_DS_STATE,
                         default=self.config_entry.options.get(
@@ -200,12 +186,6 @@ class ESXiStatsOptionsFlow(config_entries.OptionsFlow):
                             CONF_LIC_STATE, DEFAULT_LIC_STATE
                         ),
                     ): vol.In(LICENSE_STATES),
-                    vol.Optional(
-                        CONF_VM_STATE,
-                        default=self.config_entry.options.get(
-                            CONF_VM_STATE, DEFAULT_VM_STATE
-                        ),
-                    ): vol.In(VM_STATES),
                     vol.Optional(
                         CONF_NOTIFY,
                         default=self.config_entry.options.get(CONF_NOTIFY, True),

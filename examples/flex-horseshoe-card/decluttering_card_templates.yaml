@@ -3,30 +3,31 @@ vm_flex_template:
   card:
     type: 'custom:flex-horseshoe-card'
     entities:
-      - entity: '[[entity]]'
-        attribute: cpu_use_pct
+      # Note: Replace [[entity]] placeholders with actual individual sensor names
+      # CPU Usage sensor - replace with sensor.<vm_name>_cpu_use_pct
+      - entity: '[[entity]]'  # Should be CPU usage sensor
         decimals: 2
         unit: '%'
         area: CPU
         name: '[[name]]'
-      - entity: '[[entity]]'
+      # Uptime sensor - replace with sensor.<vm_name>_uptime_hours
+      - entity: sensor.<vm_name>_uptime_hours  # Replace with actual uptime sensor
         name: 'Uptime'
-        attribute: uptime_hours
         decimals: 0
         unit: 'H'
-      - entity: '[[entity]]'
+      # Memory sensor - replace with sensor.<vm_name>_memory_used_mb
+      - entity: sensor.<vm_name>_memory_used_mb  # Replace with actual memory sensor
         name: Mem Use
-        attribute: memory_used_mb
         unit: 'MB'
-      - entity: '[[entity]]'
+      # Disk sensor - replace with sensor.<vm_name>_used_space_gb
+      - entity: sensor.<vm_name>_used_space_gb  # Replace with actual disk sensor
         name: 'Disk'
-        attribute: used_space_gb
         decimals: 0
         unit: 'GB'
-      - entity: '[[entity]]'
+      # Status sensor - replace with sensor.<vm_name>_status
+      - entity: sensor.<vm_name>_status  # Replace with actual status sensor
         name: 'Status'
         unit: ' '
-        attribute: status
     show:
       horseshoe_style: 'lineargradient'
       scale_tickmarks: true
@@ -85,7 +86,7 @@ vm_flex_template:
           ypos: 74
           styles:
             - font-size: 1.6em;
-            - text-anchor: end;             
+            - text-anchor: end;
       names:
         - id: 0
           xpos: 50
