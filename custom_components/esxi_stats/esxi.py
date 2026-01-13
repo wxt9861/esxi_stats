@@ -133,8 +133,120 @@ def get_license_info(lic, host):
     return license_data
 
 
+def get_cpu_temperature(host, host_name):
+    """Get CPU1 temperature from ESXi host sensors.
+    
+    Searches for 'CPU1 Temp' sensor specifically.
+    Returns temperature in Celsius or "n/a" if unavailable.
+    """
+    try:
+        # Access the hardware status manager
+        if not hasattr(host, 'runtime') or not hasattr(host.runtime, 'healthSystemRuntime'):
+            _LOGGER.debug("No health system runtime available for %s", host_name)
+            return "n/a"
+
+        health_info = host.runtime.healthSystemRuntime
+        
+        if not hasattr(health_info, 'systemHealthInfo') or not health_info.systemHealthInfo:
+            _LOGGER.debug("No system health info available for %s", host_name)
+            return "n/a"
+
+        system_health = health_info.systemHealthInfo
+        
+        if not hasattr(system_health, 'numericSensorInfo') or not system_health.numericSensorInfo:
+            _LOGGER.debug("No sensor info available for %s", host_name)
+            return "n/a"
+
+        # Search for CPU1 Temp sensor specifically
+        for sensor in system_health.numericSensorInfo:
+            sensor_name = sensor.name.strip()
+            
+            # Look for exact match with "CPU1 Temp" (case insensitive)
+            if 'CPU' in sensor_name.upper() and 'TEMP' in sensor_name.upper():
+                # Check if sensor has a valid current reading
+                if hasattr(sensor, 'currentReading') and sensor.currentReading is not None:
+                    temp_value = sensor.currentReading
+                    
+                    # Apply unit modifier if present
+                    if hasattr(sensor, 'unitModifier'):
+                        unit_mod = sensor.unitModifier.magnitude if hasattr(sensor.unitModifier, 'magnitude') else sensor.unitModifier
+                        if unit_mod:
+                            temp_value = temp_value * (10 ** unit_mod)
+                    
+                    # Only include reasonable temperature values (0-150°C)
+                    if 0 <= temp_value <= 150:
+                        _LOGGER.debug(
+                            "Found CPU1 temp sensor '%s' on %s: %.1f°C",
+                            sensor.name, host_name, temp_value
+                        )
+                        return round(temp_value, 1)
+
+        _LOGGER.debug("CPU1 Temp sensor not found for %s", host_name)
+        return "n/a"
+
+    except Exception as e:
+        _LOGGER.debug("Could not get CPU1 temperature for %s: %s", host_name, e)
+        return "n/a"
+
+
+def get_cpu_fan_speed(host, host_name):
+    """Get CPU_FAN1 speed from ESXi host sensors.
+    
+    Searches for 'CPU_FAN1' sensor specifically.
+    Returns fan speed in RPM or "n/a" if unavailable.
+    """
+    try:
+        # Access the hardware status manager
+        if not hasattr(host, 'runtime') or not hasattr(host.runtime, 'healthSystemRuntime'):
+            _LOGGER.debug("No health system runtime available for %s", host_name)
+            return "n/a"
+
+        health_info = host.runtime.healthSystemRuntime
+        
+        if not hasattr(health_info, 'systemHealthInfo') or not health_info.systemHealthInfo:
+            _LOGGER.debug("No system health info available for %s", host_name)
+            return "n/a"
+
+        system_health = health_info.systemHealthInfo
+        
+        if not hasattr(system_health, 'numericSensorInfo') or not system_health.numericSensorInfo:
+            _LOGGER.debug("No sensor info available for %s", host_name)
+            return "n/a"
+
+        # Search for CPU_FAN1 sensor specifically
+        for sensor in system_health.numericSensorInfo:
+            sensor_name = sensor.name.strip()
+            
+            # Look for exact match with "CPU_FAN1" (case insensitive)
+            if 'FAN' in sensor_name.upper() and 'CPU' in sensor_name.upper():
+                # Check if sensor has a valid current reading
+                if hasattr(sensor, 'currentReading') and sensor.currentReading is not None:
+                    fan_speed = sensor.currentReading
+                    
+                    # Apply unit modifier if present
+                    if hasattr(sensor, 'unitModifier'):
+                        unit_mod = sensor.unitModifier.magnitude if hasattr(sensor.unitModifier, 'magnitude') else sensor.unitModifier
+                        if unit_mod:
+                            fan_speed = fan_speed * (10 ** unit_mod)
+                    
+                    # Only include reasonable fan speed values (0-10000 RPM)
+                    if 0 <= fan_speed <= 10000:
+                        _LOGGER.debug(
+                            "Found CPU_FAN1 sensor '%s' on %s: %.0f RPM",
+                            sensor.name, host_name, fan_speed
+                        )
+                        return round(fan_speed, 0)  # No decimals for RPM
+
+        _LOGGER.debug("CPU_FAN1 sensor not found for %s", host_name)
+        return "n/a"
+
+    except Exception as e:
+        _LOGGER.debug("Could not get CPU_FAN1 speed for %s: %s", host_name, e)
+        return "n/a"
+
+
 def get_host_info(host):
-    """Get host information."""
+    """Get host information including CPU temperature and fan speed."""
     host_summary = host.summary
     host_state = host_summary.runtime.powerState
     host_name = host_summary.config.name.replace(" ", "_").lower()
@@ -176,6 +288,12 @@ def get_host_info(host):
         except Exception as e:
             _LOGGER.debug("Could not get available power policies for %s: %s", host_name, e)
 
+        # Get CPU1 temperature from hardware sensors
+        cpu_temp = get_cpu_temperature(host, host_name)
+        
+        # Get CPU_FAN1 speed from hardware sensors
+        cpu_fan_speed = get_cpu_fan_speed(host, host_name)
+
         host_vms = len(host.vm)
     else:
         host_version = "n/a"
@@ -187,19 +305,23 @@ def get_host_info(host):
         host_mem_usage = "n/a"
         host_power_policy = "n/a"
         available_power_policies = []
+        cpu_temp = "n/a"
+        cpu_fan_speed = "n/a"
         host_vms = "n/a"
 
         _LOGGER.debug("Unable to return stats for %s", host_name)
 
     host_data = {
         "name": host_name,
-        "original_name": host_summary.config.name,  # Store original for exact matching
+        "original_name": host_summary.config.name,
         "state": host_state,
         "version": host_version,
         "build": host_build,
         "uptime_hours": host_uptime,
         "cputotal_ghz": host_cpu_total,
         "cpuusage_ghz": host_cpu_usage,
+        "cpu_temp_celsius": cpu_temp,
+        "cpu_fan_rpm": cpu_fan_speed,
         "memtotal_gb": host_mem_total,
         "memusage_gb": host_mem_usage,
         "maintenance_mode": host_mm_mode,
@@ -375,251 +497,61 @@ def host_pwr(hass, target_host_name, target_cmnd, conn_details, force, notify):
 
     content = conn.RetrieveContent()
     obj_view = content.viewManager.CreateContainerView(
-        content.rootFolder, [vim.HostSystem], True
+        content.rootFolder, [vim.VirtualMachine], True
     )
-    esxi_hosts = obj_view.view
+    data = obj_view.view
     obj_view.Destroy()
 
-    _LOGGER.info("Found %s host(s) in environment", len(esxi_hosts))
-
-    # Determine target host(s)
-    target_hosts = []
-
-    if len(esxi_hosts) == 1:
-        # Single ESXi host scenario
-        if target_host_name:
-            # Verify the target host name matches
-            host = esxi_hosts[0]
-            if (host.summary.config.name.lower() == target_host_name.lower() or
-                host.name.lower() == target_host_name.lower()):
-                target_hosts = [host]
-            else:
-                _LOGGER.error(
-                    "Target host '%s' does not match available host '%s'",
-                    target_host_name, host.summary.config.name
-                )
-                esx_disconnect(conn)
-                return False
-        else:
-            # No target specified, use the single available host
-            target_hosts = esxi_hosts
-            _LOGGER.info("No target host specified, using single available host")
-
-    elif len(esxi_hosts) > 1:
-        # vCenter with multiple hosts scenario
-        if not target_host_name:
-            # List available hosts for user reference
-            available_hosts = [host.summary.config.name for host in esxi_hosts]
-            _LOGGER.error(
-                "Multiple hosts found in vCenter. You must specify target_host. "
-                "Available hosts: %s", ", ".join(available_hosts)
-            )
-            esx_disconnect(conn)
-            return False
-        else:
-            # Find the specified target host
-            for host in esxi_hosts:
-                if (host.summary.config.name.lower() == target_host_name.lower() or
-                    host.name.lower() == target_host_name.lower()):
-                    target_hosts = [host]
-                    break
-
-            if not target_hosts:
-                available_hosts = [host.summary.config.name for host in esxi_hosts]
-                _LOGGER.error(
-                    "Target host '%s' not found. Available hosts: %s",
-                    target_host_name, ", ".join(available_hosts)
-                )
-                esx_disconnect(conn)
-                return False
-
-    else:
-        # No hosts found
-        _LOGGER.error("No ESXi hosts found")
-        esx_disconnect(conn)
-        return False
-
-    # Execute power command on target host(s)
     try:
-        for esxi_host in target_hosts:
-            host_name = esxi_host.summary.config.name
+        for vm in [vm for vm in data if vm.summary.config.uuid in target_vm_uuid]:
+            _LOGGER.info("Sending '%s' command to vm '%s'", target_cmnd, vm.name)
 
-            # Check if host is in maintenance mode
-            if not force and esxi_host.runtime.inMaintenanceMode is False:
-                _LOGGER.warning(
-                    "Host '%s' is not in maintenance mode. Consider setting force=true "
-                    "or putting the host in maintenance mode first", host_name
+            if vm.name == target_vm:
+                _LOGGER.debug(
+                    "Provided name %s (UUID %s) matches name on target",
+                    target_vm,
+                    target_vm_uuid,
                 )
-
-            # Check for running VMs if not forced
-            if not force:
-                vm_count = len([vm for vm in esxi_host.vm if vm.runtime.powerState == "poweredOn"])
-                if vm_count > 0:
-                    _LOGGER.warning(
-                        "Host '%s' has %d powered-on VMs. Consider migrating VMs or setting force=true",
-                        host_name, vm_count
-                    )
-
-            # Execute the power command
-            task = None
-            if target_cmnd == "shutdown":
-                _LOGGER.info(
-                    "Sending shutdown command to host '%s' (forced: %s)",
-                    host_name, force
-                )
-                task = esxi_host.ShutdownHost_Task(force)
-            elif target_cmnd == "reboot":
-                _LOGGER.info(
-                    "Sending reboot command to host '%s' (forced: %s)",
-                    host_name, force
-                )
-                task = esxi_host.RebootHost_Task(force)
             else:
-                _LOGGER.error("Unsupported host power command: %s", target_cmnd)
-                continue
+                _LOGGER.debug(
+                    "Provided name %s (UUID %s) does notmatch name on target",
+                    target_vm,
+                    target_vm_uuid,
+                )
 
-            # Monitor task status
+            # generate task based on requested command
+            if target_cmnd == "on":
+                task = vm.PowerOnVM_Task()
+            elif target_cmnd == "off":
+                task = vm.PowerOffVM_Task()
+            elif target_cmnd == "suspend":
+                task = vm.SuspendVM_Task()
+            elif target_cmnd == "reset":
+                task = vm.ResetVM_Task()
+            elif target_cmnd == "reboot":
+                task = vm.RebootGuest()
+            elif target_cmnd == "shutdown":
+                task = vm.ShutdownGuest()
+
+            # while task is running, check status
+            # some tasks are fire and forget, no status will be provided
             if task:
-                message = f"Host {target_cmnd} command sent to {host_name} (forced: {force})"
+                message = "power " + target_cmnd + " on " + vm.name
                 task_status(hass, task, message, notify)
             else:
-                _LOGGER.info("'%s' command does not provide task feedback", target_cmnd)
+                _LOGGER.info("'%s' task does not provide feedback", target_cmnd)
 
-    except vmodl.MethodFault as error:
-        _LOGGER.error("VMware method fault: %s", error.msg)
-        return False
-    except vmodl.HostConfigFault as error:
-        _LOGGER.error("Host configuration fault: %s", str(error))
-        return False
-    except vmodl.RuntimeFault as error:
-        _LOGGER.error("VMware runtime fault: %s", error.msg)
-        return False
-    except Exception as error:  # pylint: disable=broad-except
-        _LOGGER.error("Unexpected error during host power operation: %s", str(error))
-        return False
-    finally:
-        esx_disconnect(conn)
-        operation_time = time.time() - start_time
-        _LOGGER.info("Host power operation '%s' completed in %.2f seconds", target_cmnd, operation_time)
-
-    return True
-
-
-def host_pwr_policy(target_host_name, host_cmnd, conn_details):
-    """Host power policy command - supports both ESXi and vCenter."""
-    conn = esx_connect(**conn_details)
-    if not conn:
-        _LOGGER.error("Failed to connect to %s", conn_details.get('host', 'host'))
-        return False
-
-    content = conn.RetrieveContent()
-    obj_view = content.viewManager.CreateContainerView(
-        content.rootFolder, [vim.HostSystem], True
-    )
-    esxi_hosts = obj_view.view
-    obj_view.Destroy()
-
-    _LOGGER.info("Found %s host(s) in environment", len(esxi_hosts))
-
-    # Determine target host(s)
-    target_hosts = []
-
-    if len(esxi_hosts) == 1:
-        # Single ESXi host scenario
-        if target_host_name:
-            # Verify the target host name matches
-            host = esxi_hosts[0]
-            if (host.summary.config.name.lower() == target_host_name.lower() or
-                host.name.lower() == target_host_name.lower()):
-                target_hosts = [host]
-            else:
-                _LOGGER.error(
-                    "Target host '%s' does not match available host '%s'",
-                    target_host_name, host.summary.config.name
-                )
-                esx_disconnect(conn)
-                return False
+            break
         else:
-            # No target specified, use the single available host
-            target_hosts = esxi_hosts
-            _LOGGER.info("No target host specified, using single available host")
-
-    elif len(esxi_hosts) > 1:
-        # vCenter with multiple hosts scenario
-        if not target_host_name:
-            # List available hosts for user reference
-            available_hosts = [host.summary.config.name for host in esxi_hosts]
-            _LOGGER.error(
-                "Multiple hosts found in vCenter. You must specify target_host. "
-                "Available hosts: %s", ", ".join(available_hosts)
-            )
-            esx_disconnect(conn)
-            return False
-        else:
-            # Find the specified target host
-            for host in esxi_hosts:
-                if (host.summary.config.name.lower() == target_host_name.lower() or
-                    host.name.lower() == target_host_name.lower()):
-                    target_hosts = [host]
-                    break
-
-            if not target_hosts:
-                available_hosts = [host.summary.config.name for host in esxi_hosts]
-                _LOGGER.error(
-                    "Target host '%s' not found. Available hosts: %s",
-                    target_host_name, ", ".join(available_hosts)
-                )
-                esx_disconnect(conn)
-                return False
-
-    else:
-        # No hosts found
-        _LOGGER.error("No ESXi hosts found")
-        esx_disconnect(conn)
-        return False
-
-    # Apply power policy to target host(s)
-    try:
-        for vm_host in target_hosts:
-            host_name = vm_host.summary.config.name
             _LOGGER.info(
-                "Sending power policy '%s' command to host '%s'", host_cmnd, host_name
+                "VM %s on host %s not found. Make sure the name is correct",
+                target_vm,
+                target_host,
             )
-
-            policy_key = ""
-            available_policy = []
-
-            # Check if host supports power system capability
-            if not hasattr(vm_host.config, 'powerSystemCapability') or not vm_host.config.powerSystemCapability:
-                _LOGGER.warning("Host '%s' does not support power policy configuration", host_name)
-                continue
-
-            for policy in vm_host.config.powerSystemCapability.availablePolicy:
-                available_policy.append(policy.shortName)
-                if policy.shortName == host_cmnd:
-                    policy_key = policy.key
-
-            if host_cmnd in available_policy:
-                vm_host.configManager.powerSystem.ConfigurePowerPolicy(policy_key)
-                _LOGGER.info("Power policy '%s' applied to host '%s'", host_cmnd, host_name)
-            else:
-                _LOGGER.warning(
-                    "Power policy '%s' not available on host '%s'. Available policies: %s",
-                    host_cmnd, host_name, available_policy
-                )
-
     except vmodl.MethodFault as error:
-        _LOGGER.error("VMware method fault: %s", error.msg)
-        return False
-    except vmodl.HostConfigFault as error:
-        _LOGGER.error("Host configuration fault: %s", str(error))
-        return False
-    except vmodl.RuntimeFault as error:
-        _LOGGER.error("VMware runtime fault: %s", error.msg)
-        return False
+        _LOGGER.info(error.msg)
     except Exception as error:  # pylint: disable=broad-except
-        _LOGGER.error("Unexpected error during power policy configuration: %s", str(error))
-        return False
+        _LOGGER.info(str(error))
     finally:
         esx_disconnect(conn)
 
@@ -681,21 +613,6 @@ def vm_pwr(
             else:
                 _LOGGER.info("'%s' task does not provide feedback", target_cmnd)
 
-            break
-        else:
-            _LOGGER.info(
-                "VM %s on host %s not found. Make sure the name is correct",
-                target_vm,
-                target_host,
-            )
-    except vmodl.MethodFault as error:
-        _LOGGER.info(error.msg)
-    except Exception as error:  # pylint: disable=broad-except
-        _LOGGER.info(str(error))
-    finally:
-        esx_disconnect(conn)
-
-    return True
 
 
 def vm_snap_take(
@@ -1084,4 +1001,266 @@ def list_power_policies(hass, target_host_name, conn_details):
     except Exception as error:  # pylint: disable=broad-except
         _LOGGER.error("Failed to list power policies: %s", error)
     finally:
+        esx_disconnect(conn)Content()
+    obj_view = content.viewManager.CreateContainerView(
+        content.rootFolder, [vim.HostSystem], True
+    )
+    esxi_hosts = obj_view.view
+    obj_view.Destroy()
+
+    _LOGGER.info("Found %s host(s) in environment", len(esxi_hosts))
+
+    # Determine target host(s)
+    target_hosts = []
+
+    if len(esxi_hosts) == 1:
+        # Single ESXi host scenario
+        if target_host_name:
+            # Verify the target host name matches
+            host = esxi_hosts[0]
+            if (host.summary.config.name.lower() == target_host_name.lower() or
+                host.name.lower() == target_host_name.lower()):
+                target_hosts = [host]
+            else:
+                _LOGGER.error(
+                    "Target host '%s' does not match available host '%s'",
+                    target_host_name, host.summary.config.name
+                )
+                esx_disconnect(conn)
+                return False
+        else:
+            # No target specified, use the single available host
+            target_hosts = esxi_hosts
+            _LOGGER.info("No target host specified, using single available host")
+
+    elif len(esxi_hosts) > 1:
+        # vCenter with multiple hosts scenario
+        if not target_host_name:
+            # List available hosts for user reference
+            available_hosts = [host.summary.config.name for host in esxi_hosts]
+            _LOGGER.error(
+                "Multiple hosts found in vCenter. You must specify target_host. "
+                "Available hosts: %s", ", ".join(available_hosts)
+            )
+            esx_disconnect(conn)
+            return False
+        else:
+            # Find the specified target host
+            for host in esxi_hosts:
+                if (host.summary.config.name.lower() == target_host_name.lower() or
+                    host.name.lower() == target_host_name.lower()):
+                    target_hosts = [host]
+                    break
+
+            if not target_hosts:
+                available_hosts = [host.summary.config.name for host in esxi_hosts]
+                _LOGGER.error(
+                    "Target host '%s' not found. Available hosts: %s",
+                    target_host_name, ", ".join(available_hosts)
+                )
+                esx_disconnect(conn)
+                return False
+
+    else:
+        # No hosts found
+        _LOGGER.error("No ESXi hosts found")
         esx_disconnect(conn)
+        return False
+
+    # Execute power command on target host(s)
+    try:
+        for esxi_host in target_hosts:
+            host_name = esxi_host.summary.config.name
+
+            # Check if host is in maintenance mode
+            if not force and esxi_host.runtime.inMaintenanceMode is False:
+                _LOGGER.warning(
+                    "Host '%s' is not in maintenance mode. Consider setting force=true "
+                    "or putting the host in maintenance mode first", host_name
+                )
+
+            # Check for running VMs if not forced
+            if not force:
+                vm_count = len([vm for vm in esxi_host.vm if vm.runtime.powerState == "poweredOn"])
+                if vm_count > 0:
+                    _LOGGER.warning(
+                        "Host '%s' has %d powered-on VMs. Consider migrating VMs or setting force=true",
+                        host_name, vm_count
+                    )
+
+            # Execute the power command
+            task = None
+            if target_cmnd == "shutdown":
+                _LOGGER.info(
+                    "Sending shutdown command to host '%s' (forced: %s)",
+                    host_name, force
+                )
+                task = esxi_host.ShutdownHost_Task(force)
+            elif target_cmnd == "reboot":
+                _LOGGER.info(
+                    "Sending reboot command to host '%s' (forced: %s)",
+                    host_name, force
+                )
+                task = esxi_host.RebootHost_Task(force)
+            else:
+                _LOGGER.error("Unsupported host power command: %s", target_cmnd)
+                continue
+
+            # Monitor task status
+            if task:
+                message = f"Host {target_cmnd} command sent to {host_name} (forced: {force})"
+                task_status(hass, task, message, notify)
+            else:
+                _LOGGER.info("'%s' command does not provide task feedback", target_cmnd)
+
+    except vmodl.MethodFault as error:
+        _LOGGER.error("VMware method fault: %s", error.msg)
+        return False
+    except vmodl.HostConfigFault as error:
+        _LOGGER.error("Host configuration fault: %s", str(error))
+        return False
+    except vmodl.RuntimeFault as error:
+        _LOGGER.error("VMware runtime fault: %s", error.msg)
+        return False
+    except Exception as error:  # pylint: disable=broad-except
+        _LOGGER.error("Unexpected error during host power operation: %s", str(error))
+        return False
+    finally:
+        esx_disconnect(conn)
+        operation_time = time.time() - start_time
+        _LOGGER.info("Host power operation '%s' completed in %.2f seconds", target_cmnd, operation_time)
+
+    return True
+
+
+def host_pwr_policy(target_host_name, host_cmnd, conn_details):
+    """Host power policy command - supports both ESXi and vCenter."""
+    conn = esx_connect(**conn_details)
+    if not conn:
+        _LOGGER.error("Failed to connect to %s", conn_details.get('host', 'host'))
+        return False
+
+    content = conn.RetrieveContent()
+    obj_view = content.viewManager.CreateContainerView(
+        content.rootFolder, [vim.HostSystem], True
+    )
+    esxi_hosts = obj_view.view
+    obj_view.Destroy()
+
+    _LOGGER.info("Found %s host(s) in environment", len(esxi_hosts))
+
+    # Determine target host(s)
+    target_hosts = []
+
+    if len(esxi_hosts) == 1:
+        # Single ESXi host scenario
+        if target_host_name:
+            # Verify the target host name matches
+            host = esxi_hosts[0]
+            if (host.summary.config.name.lower() == target_host_name.lower() or
+                host.name.lower() == target_host_name.lower()):
+                target_hosts = [host]
+            else:
+                _LOGGER.error(
+                    "Target host '%s' does not match available host '%s'",
+                    target_host_name, host.summary.config.name
+                )
+                esx_disconnect(conn)
+                return False
+        else:
+            # No target specified, use the single available host
+            target_hosts = esxi_hosts
+            _LOGGER.info("No target host specified, using single available host")
+
+    elif len(esxi_hosts) > 1:
+        # vCenter with multiple hosts scenario
+        if not target_host_name:
+            # List available hosts for user reference
+            available_hosts = [host.summary.config.name for host in esxi_hosts]
+            _LOGGER.error(
+                "Multiple hosts found in vCenter. You must specify target_host. "
+                "Available hosts: %s", ", ".join(available_hosts)
+            )
+            esx_disconnect(conn)
+            return False
+        else:
+            # Find the specified target host
+            for host in esxi_hosts:
+                if (host.summary.config.name.lower() == target_host_name.lower() or
+                    host.name.lower() == target_host_name.lower()):
+                    target_hosts = [host]
+                    break
+
+            if not target_hosts:
+                available_hosts = [host.summary.config.name for host in esxi_hosts]
+                _LOGGER.error(
+                    "Target host '%s' not found. Available hosts: %s",
+                    target_host_name, ", ".join(available_hosts)
+                )
+                esx_disconnect(conn)
+                return False
+
+    else:
+        # No hosts found
+        _LOGGER.error("No ESXi hosts found")
+        esx_disconnect(conn)
+        return False
+
+    # Apply power policy to target host(s)
+    try:
+        for vm_host in target_hosts:
+            host_name = vm_host.summary.config.name
+            _LOGGER.info(
+                "Sending power policy '%s' command to host '%s'", host_cmnd, host_name
+            )
+
+            policy_key = ""
+            available_policy = []
+
+            # Check if host supports power system capability
+            if not hasattr(vm_host.config, 'powerSystemCapability') or not vm_host.config.powerSystemCapability:
+                _LOGGER.warning("Host '%s' does not support power policy configuration", host_name)
+                continue
+
+            for policy in vm_host.config.powerSystemCapability.availablePolicy:
+                available_policy.append(policy.shortName)
+                if policy.shortName == host_cmnd:
+                    policy_key = policy.key
+
+            if host_cmnd in available_policy:
+                vm_host.configManager.powerSystem.ConfigurePowerPolicy(policy_key)
+                _LOGGER.info("Power policy '%s' applied to host '%s'", host_cmnd, host_name)
+            else:
+                _LOGGER.warning(
+                    "Power policy '%s' not available on host '%s'. Available policies: %s",
+                    host_cmnd, host_name, available_policy
+                )
+
+    except vmodl.MethodFault as error:
+        _LOGGER.error("VMware method fault: %s", error.msg)
+        return False
+    except vmodl.HostConfigFault as error:
+        _LOGGER.error("Host configuration fault: %s", str(error))
+        return False
+    except vmodl.RuntimeFault as error:
+        _LOGGER.error("VMware runtime fault: %s", error.msg)
+        return False
+    except Exception as error:  # pylint: disable=broad-except
+        _LOGGER.error("Unexpected error during power policy configuration: %s", str(error))
+        return False
+    finally:
+        esx_disconnect(conn)
+
+    return True
+
+
+def vm_pwr(
+    hass, target_host, target_vm, target_vm_uuid, target_cmnd, conn_details, notify
+):
+    """VM power commands."""
+    conn = esx_connect(**conn_details)
+    if not conn:
+        _LOGGER.error("Failed to connect to %s", conn_details.get('host', 'host'))
+        return False
+
+    content = conn.Retrieve

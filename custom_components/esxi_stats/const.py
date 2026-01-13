@@ -83,6 +83,8 @@ MAP_TO_MEASUREMENT = {
     # Host attributes
     "cputotal_ghz": "GHz",
     "memtotal_gb": "GB",
+    "cpu_temp_celsius": "°C",  # CPU1 Temperature
+    "cpu_fan_rpm": "RPM",  # CPU_FAN1 Speed
     "version": None,  # Version text
     "build": None,  # Build text
     "maintenance_mode": None,  # Boolean

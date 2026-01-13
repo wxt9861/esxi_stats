@@ -3,6 +3,7 @@ import logging
 from string import capwords
 from datetime import timedelta
 from homeassistant.helpers.entity import Entity
+from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 
 from .const import (
     DOMAIN,
@@ -164,9 +165,40 @@ class ESXiSensor(Entity):
         return self._measurement
 
     @property
+    def device_class(self):
+        """Return the device class of the sensor."""
+        # Add device class for temperature sensor for better Home Assistant integration
+        if self._attribute_key == "cpu_temp_celsius":
+            return SensorDeviceClass.TEMPERATURE
+        return None
+
+    @property
+    def state_class(self):
+        """Return the state class of the sensor."""
+        # Add state class for numeric sensors to enable statistics and graphs
+        if self._attribute_key in [
+            "cpu_temp_celsius", "cpuusage_ghz", "cputotal_ghz", 
+            "memusage_gb", "memtotal_gb", "uptime_hours",
+            "cpu_use_pct", "memory_used_mb", "memory_active_mb",
+            "free_space_gb", "total_space_gb", "cpu_fan_rpm"
+        ]:
+            return SensorStateClass.MEASUREMENT
+        return None
+
+    @property
     def extra_state_attributes(self):
         """Return the state attributes."""
         return self._attr
+
+    @property
+    def icon(self):
+        """Return the icon for the sensor."""
+        # Add custom icons for specific sensors
+        if self._attribute_key == "cpu_temp_celsius":
+            return "mdi:thermometer"
+        elif self._attribute_key == "cpu_fan_rpm":
+            return "mdi:fan"
+        return None
 
     @property
     def device_info(self):
