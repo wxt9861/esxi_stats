@@ -101,7 +101,9 @@ Virtual Machine > Interact > Suspend
 
 **Add for Host Power Control:**
 ```
-Host > Config > Power
+Host > Configuration > Power
+Host > Configuration > Maintenance
+Host > Configuration > System Management
 ```
 
 **Add for VM Snapshots:**
@@ -115,6 +117,8 @@ Virtual Machine > State > Remove Snapshot
 Datastore > Browse datastore
 Global > Licenses
 Host > Configuration > Power
+Host > Configuration > Maintenance
+Host > Configuration > System Management
 Virtual machine > Interaction > Power On
 Virtual machine > Interaction > Power Off
 Virtual machine > Interaction > Reset
@@ -187,7 +191,7 @@ Virtual machine > Snapshot management > Remove snapshot
 | **Monitor hosts/VMs/datastores** | Datastore > Browse datastore | Read-Only role |
 | **View license information** | Global > Licenses | Administrator role |
 | **Control VM power** | Virtual Machine > Interact > Power* permissions | Administrator role |
-| **Control host power** | Host > Config > Power | Administrator role |
+| **Control host power** | Host > Config > Power, Maintenance, System Management | Administrator role |
 | **Change power policies** | Host > Config > Power | Administrator role |
 | **Manage snapshots** | Virtual Machine > State > *Snapshot permissions | Administrator role |
 
