@@ -13,7 +13,7 @@ function StartHomeAssistant {
 }
 
 function UpgradeHomeAssistantDev {
-  python -m pip install --upgrade homeassistant
+  python -m pip install --upgrade homeassistant --root-user-action ignore
 }
 
 function SetHomeAssistantVersion {
