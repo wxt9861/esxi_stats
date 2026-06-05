@@ -177,7 +177,7 @@ class ESXiSensor(Entity):
         """Return the state class of the sensor."""
         # Add state class for numeric sensors to enable statistics and graphs
         if self._attribute_key in [
-            "cpu_temp_celsius", "cpuusage_ghz", "cputotal_ghz", 
+            "cpu_temp_celsius", "cpuusage_ghz", "cputotal_ghz",
             "memusage_gb", "memtotal_gb", "uptime_hours",
             "cpu_use_pct", "memory_used_mb", "memory_active_mb",
             "free_space_gb", "total_space_gb", "cpu_fan_rpm"
@@ -240,6 +240,13 @@ class ESXiSensor(Entity):
             "name": device_name,
             "manufacturer": manufacturer,
         }
+
+    @property
+    def entity_registry_enabled_default(self) -> bool:
+        if self._cond == "vmhost":
+            if self._attribute_key == 'cpu_temp_celsius' or self._attribute_key == 'cpu_fan_rpm':
+                return False
+        return True
 
 
 def measure_format(input):
