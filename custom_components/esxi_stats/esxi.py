@@ -133,6 +133,118 @@ def get_license_info(lic, host):
     return license_data
 
 
+def get_cpu_temperature(host, host_name):
+    """Get CPU1 temperature from ESXi host sensors.
+    
+    Searches for 'CPU1 Temp' sensor specifically.
+    Returns temperature in Celsius or "n/a" if unavailable.
+    """
+    try:
+        # Access the hardware status manager
+        if not hasattr(host, 'runtime') or not hasattr(host.runtime, 'healthSystemRuntime'):
+            _LOGGER.debug("No health system runtime available for %s", host_name)
+            return "n/a"
+
+        health_info = host.runtime.healthSystemRuntime
+        
+        if not hasattr(health_info, 'systemHealthInfo') or not health_info.systemHealthInfo:
+            _LOGGER.debug("No system health info available for %s", host_name)
+            return "n/a"
+
+        system_health = health_info.systemHealthInfo
+        
+        if not hasattr(system_health, 'numericSensorInfo') or not system_health.numericSensorInfo:
+            _LOGGER.debug("No sensor info available for %s", host_name)
+            return "n/a"
+
+        # Search for CPU1 Temp sensor specifically
+        for sensor in system_health.numericSensorInfo:
+            sensor_name = sensor.name.strip()
+            
+            # Look for exact match with "CPU1 Temp" (case insensitive)
+            if 'CPU' in sensor_name.upper() and 'TEMP' in sensor_name.upper():
+                # Check if sensor has a valid current reading
+                if hasattr(sensor, 'currentReading') and sensor.currentReading is not None:
+                    temp_value = sensor.currentReading
+                    
+                    # Apply unit modifier if present
+                    if hasattr(sensor, 'unitModifier'):
+                        unit_mod = sensor.unitModifier.magnitude if hasattr(sensor.unitModifier, 'magnitude') else sensor.unitModifier
+                        if unit_mod:
+                            temp_value = temp_value * (10 ** unit_mod)
+                    
+                    # Only include reasonable temperature values (0-150°C)
+                    if 0 <= temp_value <= 150:
+                        _LOGGER.debug(
+                            "Found CPU1 temp sensor '%s' on %s: %.1f°C",
+                            sensor.name, host_name, temp_value
+                        )
+                        return round(temp_value, 1)
+
+        _LOGGER.debug("CPU1 Temp sensor not found for %s", host_name)
+        return "n/a"
+
+    except Exception as e:
+        _LOGGER.debug("Could not get CPU1 temperature for %s: %s", host_name, e)
+        return "n/a"
+
+
+def get_cpu_fan_speed(host, host_name):
+    """Get CPU_FAN1 speed from ESXi host sensors.
+    
+    Searches for 'CPU_FAN1' sensor specifically.
+    Returns fan speed in RPM or "n/a" if unavailable.
+    """
+    try:
+        # Access the hardware status manager
+        if not hasattr(host, 'runtime') or not hasattr(host.runtime, 'healthSystemRuntime'):
+            _LOGGER.debug("No health system runtime available for %s", host_name)
+            return "n/a"
+
+        health_info = host.runtime.healthSystemRuntime
+        
+        if not hasattr(health_info, 'systemHealthInfo') or not health_info.systemHealthInfo:
+            _LOGGER.debug("No system health info available for %s", host_name)
+            return "n/a"
+
+        system_health = health_info.systemHealthInfo
+        
+        if not hasattr(system_health, 'numericSensorInfo') or not system_health.numericSensorInfo:
+            _LOGGER.debug("No sensor info available for %s", host_name)
+            return "n/a"
+
+        # Search for CPU_FAN1 sensor specifically
+        for sensor in system_health.numericSensorInfo:
+            sensor_name = sensor.name.strip()
+            
+            # Look for exact match with "CPU_FAN1" (case insensitive)
+            if 'FAN' in sensor_name.upper() and 'CPU' in sensor_name.upper():
+                # Check if sensor has a valid current reading
+                if hasattr(sensor, 'currentReading') and sensor.currentReading is not None:
+                    fan_speed = sensor.currentReading
+                    
+                    # Apply unit modifier if present
+                    if hasattr(sensor, 'unitModifier'):
+                        unit_mod = sensor.unitModifier.magnitude if hasattr(sensor.unitModifier, 'magnitude') else sensor.unitModifier
+                        if unit_mod:
+                            fan_speed = fan_speed * (10 ** unit_mod)
+                    
+                    # Only include reasonable fan speed values (0-10000 RPM)
+                    if 0 <= fan_speed <= 10000:
+                        _LOGGER.debug(
+                            "Found CPU_FAN1 sensor '%s' on %s: %.0f RPM",
+                            sensor.name, host_name, fan_speed
+                        )
+                        return round(fan_speed, 0)  # No decimals for RPM
+
+        _LOGGER.debug("CPU_FAN1 sensor not found for %s", host_name)
+        return "n/a"
+
+    except Exception as e:
+        _LOGGER.debug("Could not get CPU_FAN1 speed for %s: %s", host_name, e)
+        return "n/a"
+
+
 def get_host_info(host):
     """Get host information."""
     host_summary = host.summary
@@ -176,6 +288,12 @@ def get_host_info(host):
         except Exception as e:
             _LOGGER.debug("Could not get available power policies for %s: %s", host_name, e)
 
+        # Get CPU1 temperature from hardware sensors
+        cpu_temp = get_cpu_temperature(host, host_name)
+        
+        # Get CPU_FAN1 speed from hardware sensors
+        cpu_fan_speed = get_cpu_fan_speed(host, host_name)
+
         host_vms = len(host.vm)
     else:
         host_version = "n/a"
@@ -187,19 +305,23 @@ def get_host_info(host):
         host_mem_usage = "n/a"
         host_power_policy = "n/a"
         available_power_policies = []
+        cpu_temp = "n/a"
+        cpu_fan_speed = "n/a"
         host_vms = "n/a"
 
         _LOGGER.debug("Unable to return stats for %s", host_name)
 
     host_data = {
         "name": host_name,
-        "original_name": host_summary.config.name,  # Store original for exact matching
+        "original_name": host_summary.config.name, # Store original for exact matching
         "state": host_state,
         "version": host_version,
         "build": host_build,
         "uptime_hours": host_uptime,
         "cputotal_ghz": host_cpu_total,
         "cpuusage_ghz": host_cpu_usage,
+        "cpu_temp_celsius": cpu_temp,
+        "cpu_fan_rpm": cpu_fan_speed,
         "memtotal_gb": host_mem_total,
         "memusage_gb": host_mem_usage,
         "maintenance_mode": host_mm_mode,
