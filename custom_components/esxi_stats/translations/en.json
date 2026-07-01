@@ -4,7 +4,7 @@
         "step": {
             "user": {
                 "title": "ESXi Stats",
-                "description": "If you need help with the configuration have a look here: https://github.com/wxt9861/esxi_stats/blob/master/README.md",
+                "description": "If you need help with the configuration have a look here: github.com/wxt9861/esxi_stats/blob/master/README.md",
                 "data": {
                     "host": "IP Address or host name (FQDN)",
                     "port": "Port",
@@ -92,7 +92,7 @@
         },
         "create_snapshot": {
             "name": "create_snapshot",
-            "description": "Sends a command to vCenter/ESXi Host to take a Virtual Machine snapshot. For detailed information about snapshots see https://kb.vmware.com/s/article/1015180",
+            "description": "Sends a command to vCenter/ESXi Host to take a Virtual Machine snapshot. For detailed information about snapshots see kb.vmware.com/s/article/1015180",
             "fields": {
                 "host": {
                     "name": "host",
