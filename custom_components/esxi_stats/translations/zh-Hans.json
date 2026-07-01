@@ -4,7 +4,7 @@
         "step": {
             "user": {
                 "title": "ESXi Stats",
-                "description": "如果您需要配置帮助，请看这里：https://github.com/wxt9861/esxi_stats/blob/master/README.md",
+                "description": "如果您需要配置帮助，请看这里：github.com/wxt9861/esxi_stats/blob/master/README.md",
                 "data": {
                     "host": "IP地址或者主机名 (FQDN)",
                     "port": "端口",

@@ -4,7 +4,7 @@
         "step": {
             "user": {
                 "title": "ESXi Stats",
-                "description": "Hvis du trenger hjelp med konfigurasjonen ta en titt her: https://github.com/wxt9861/esxi_stats/blob/master/README.md",
+                "description": "Hvis du trenger hjelp med konfigurasjonen ta en titt her: github.com/wxt9861/esxi_stats/blob/master/README.md",
                 "data": {
                     "host": "IP-adresse eller vertsnavn (FQDN)",
                     "port": "Port",
