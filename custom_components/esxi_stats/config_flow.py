@@ -1,4 +1,5 @@
 """Config flow for esxi_stats integration."""
+
 import logging
 import voluptuous as vol
 
@@ -33,15 +34,13 @@ class ESXiStatsFlowHandler(config_entries.ConfigFlow):
     @callback
     def async_get_options_flow(config_entry):
         """Get the options flow for this handler."""
-        return ESXiStatsOptionsFlow(config_entry)
+        return ESXiStatsOptionsFlow()
 
     def __init__(self):
         """Initialize."""
         self._errors = {}
 
-    async def async_step_user(
-        self, user_input={}
-    ):  # pylint: disable=dangerous-default-value
+    async def async_step_user(self, user_input={}):  # pylint: disable=dangerous-default-value
         """Handle a flow initialized by the user."""
         self._errors = {}
         if self.hass.data.get(DOMAIN):
@@ -153,10 +152,8 @@ class ESXiStatsFlowHandler(config_entries.ConfigFlow):
 class ESXiStatsOptionsFlow(config_entries.OptionsFlow):
     """Handle ESXi Stats options."""
 
-    def __init__(self, config_entry):
+    def __init__(self):
         """Initialize ESXi Stats options flow."""
-        self.config_entry = config_entry
-        self.options = dict(config_entry.options)
 
     async def async_step_init(self, user_input=None):
         """Manage ESXi Stats options."""
@@ -165,10 +162,7 @@ class ESXiStatsOptionsFlow(config_entries.OptionsFlow):
     async def async_step_esxi_options(self, user_input=None):
         """Manage ESXi Stats Options."""
         if user_input is not None:
-            self.options[CONF_DS_STATE] = user_input[CONF_DS_STATE]
-            self.options[CONF_LIC_STATE] = user_input[CONF_LIC_STATE]
-            self.options[CONF_NOTIFY] = user_input[CONF_NOTIFY]
-            return self.async_create_entry(title="", data=self.options)
+            return self.async_create_entry(title="", data=user_input)
 
         return self.async_show_form(
             step_id="esxi_options",

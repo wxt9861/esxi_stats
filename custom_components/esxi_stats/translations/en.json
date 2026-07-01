@@ -35,7 +35,7 @@
                     "license": "License State Attribute",
                     "notify": "Create service call notifications"
                 },
-                "description": "Configure state attributes for datastore and license sensors."
+                "description": "Configure state attributes for datastore and license sensors. Changing options will force integration reload."
             }
         }
     },
