@@ -12,7 +12,8 @@
 		"vscode": {
 			"extensions": [
 				"ms-python.python",
-				"github.vscode-pull-request-github"
+				"github.vscode-pull-request-github",
+				"charliermarsh.ruff"
 			],
 			"settings": {
 				"files.eol": "\n",

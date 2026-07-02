@@ -166,7 +166,14 @@ async def async_setup_entry(hass, config_entry):
             config[DOMAIN]["host"],
         )
 
+    config_entry.add_update_listener(async_reload_entry)
+
     return True
+
+
+async def async_reload_entry(hass, config_entry):
+    """Reload the config entry when options are updated."""
+    await hass.config_entries.async_reload(config_entry.entry_id)
 
 
 def connect(hass, config, entry):
