@@ -3,6 +3,7 @@ import logging
 from string import capwords
 from datetime import timedelta
 from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC, format_mac
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
 
 from .const import (
@@ -203,6 +204,7 @@ class ESXiSensor(Entity):
     @property
     def device_info(self):
         """Return device info for this sensor."""
+        connections = set()
         if self._config_entry is None:
             identifier = {(DOMAIN, self.config["host"].replace(".", "_"))}
             device_name = "ESXi Stats"
@@ -215,6 +217,11 @@ class ESXiSensor(Entity):
                 identifier = {(DOMAIN, f"vm_{self._obj}")}
                 device_name = f"VM: {vm_name}"
                 manufacturer = "VMware Virtual Machine"
+
+                mac_address = vm_data.get("mac_address")
+                if mac_address and mac_address != "n/a":
+                    for mac in mac_address.split(", "):
+                        connections.add((CONNECTION_NETWORK_MAC, format_mac(mac)))
             elif self._cond == "vmhost":
                 # Host sensors go to host device
                 host_data = self._data
@@ -237,6 +244,7 @@ class ESXiSensor(Entity):
 
         return {
             "identifiers": identifier,
+            "connections": connections,
             "name": device_name,
             "manufacturer": manufacturer,
         }

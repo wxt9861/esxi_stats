@@ -135,7 +135,7 @@ def get_license_info(lic, host):
 
 def get_cpu_temperature(host, host_name):
     """Get CPU1 temperature from ESXi host sensors.
-    
+
     Searches for 'CPU1 Temp' sensor specifically.
     Returns temperature in Celsius or "n/a" if unavailable.
     """
@@ -146,13 +146,13 @@ def get_cpu_temperature(host, host_name):
             return "n/a"
 
         health_info = host.runtime.healthSystemRuntime
-        
+
         if not hasattr(health_info, 'systemHealthInfo') or not health_info.systemHealthInfo:
             _LOGGER.debug("No system health info available for %s", host_name)
             return "n/a"
 
         system_health = health_info.systemHealthInfo
-        
+
         if not hasattr(system_health, 'numericSensorInfo') or not system_health.numericSensorInfo:
             _LOGGER.debug("No sensor info available for %s", host_name)
             return "n/a"
@@ -160,19 +160,19 @@ def get_cpu_temperature(host, host_name):
         # Search for CPU1 Temp sensor specifically
         for sensor in system_health.numericSensorInfo:
             sensor_name = sensor.name.strip()
-            
+
             # Look for exact match with "CPU1 Temp" (case insensitive)
             if 'CPU' in sensor_name.upper() and 'TEMP' in sensor_name.upper():
                 # Check if sensor has a valid current reading
                 if hasattr(sensor, 'currentReading') and sensor.currentReading is not None:
                     temp_value = sensor.currentReading
-                    
+
                     # Apply unit modifier if present
                     if hasattr(sensor, 'unitModifier'):
                         unit_mod = sensor.unitModifier.magnitude if hasattr(sensor.unitModifier, 'magnitude') else sensor.unitModifier
                         if unit_mod:
                             temp_value = temp_value * (10 ** unit_mod)
-                    
+
                     # Only include reasonable temperature values (0-150°C)
                     if 0 <= temp_value <= 150:
                         _LOGGER.debug(
@@ -191,7 +191,7 @@ def get_cpu_temperature(host, host_name):
 
 def get_cpu_fan_speed(host, host_name):
     """Get CPU_FAN1 speed from ESXi host sensors.
-    
+
     Searches for 'CPU_FAN1' sensor specifically.
     Returns fan speed in RPM or "n/a" if unavailable.
     """
@@ -202,13 +202,13 @@ def get_cpu_fan_speed(host, host_name):
             return "n/a"
 
         health_info = host.runtime.healthSystemRuntime
-        
+
         if not hasattr(health_info, 'systemHealthInfo') or not health_info.systemHealthInfo:
             _LOGGER.debug("No system health info available for %s", host_name)
             return "n/a"
 
         system_health = health_info.systemHealthInfo
-        
+
         if not hasattr(system_health, 'numericSensorInfo') or not system_health.numericSensorInfo:
             _LOGGER.debug("No sensor info available for %s", host_name)
             return "n/a"
@@ -216,19 +216,19 @@ def get_cpu_fan_speed(host, host_name):
         # Search for CPU_FAN1 sensor specifically
         for sensor in system_health.numericSensorInfo:
             sensor_name = sensor.name.strip()
-            
+
             # Look for exact match with "CPU_FAN1" (case insensitive)
             if 'FAN' in sensor_name.upper() and 'CPU' in sensor_name.upper():
                 # Check if sensor has a valid current reading
                 if hasattr(sensor, 'currentReading') and sensor.currentReading is not None:
                     fan_speed = sensor.currentReading
-                    
+
                     # Apply unit modifier if present
                     if hasattr(sensor, 'unitModifier'):
                         unit_mod = sensor.unitModifier.magnitude if hasattr(sensor.unitModifier, 'magnitude') else sensor.unitModifier
                         if unit_mod:
                             fan_speed = fan_speed * (10 ** unit_mod)
-                    
+
                     # Only include reasonable fan speed values (0-10000 RPM)
                     if 0 <= fan_speed <= 10000:
                         _LOGGER.debug(
@@ -290,7 +290,7 @@ def get_host_info(host):
 
         # Get CPU1 temperature from hardware sensors
         cpu_temp = get_cpu_temperature(host, host_name)
-        
+
         # Get CPU_FAN1 speed from hardware sensors
         cpu_fan_speed = get_cpu_fan_speed(host, host_name)
 
@@ -364,6 +364,7 @@ def get_vm_info(virtual_machine):
     vm_sum = virtual_machine.summary
     vm_run = virtual_machine.runtime
     vm_snap = virtual_machine.snapshot
+    vm_hardware = virtual_machine.config.hardware
 
     vm_name = vm_sum.config.name.replace(" ", "_").lower()
     vm_proper_name = vm_sum.config.name
@@ -376,6 +377,12 @@ def get_vm_info(virtual_machine):
 
     vm_tools_status = vm_sum.guest.toolsStatus
     vm_used_space = round(vm_sum.storage.committed / 1073741824, 2)
+    vm_macs = [
+        device.macAddress
+        for device in vm_hardware.device
+        if isinstance(device, vim.vm.device.VirtualEthernetCard)
+    ]
+    vm_mac = ", ".join(vm_macs) if vm_macs else "n/a"
 
     # if snapshots present, get number of snapshots
     if vm_snap is not None:
@@ -458,6 +465,7 @@ def get_vm_info(virtual_machine):
         "tools_status": vm_tools_status,
         "guest_os": vm_guest_os,
         "guest_ip": vm_ip,
+        "mac_address": vm_mac,
         "snapshots": vm_snapshots,
         "uuid": vm_sum.config.uuid,
         "host_name": vm_run.host.name,

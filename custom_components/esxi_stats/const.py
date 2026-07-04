@@ -76,6 +76,7 @@ MAP_TO_MEASUREMENT = {
     "tools_status": None,  # Status text
     "guest_os": None,  # Text
     "guest_ip": None,  # IP address
+    "mac_address": None,  # MAC address
     "status": None,  # Status text
     "state": None,  # State text
     "host_name": None,  # Text
