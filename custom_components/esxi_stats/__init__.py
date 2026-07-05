@@ -35,7 +35,7 @@ from .esxi import (
     vm_snap_take,
     vm_snap_remove,
     list_esxi_hosts,
-    list_power_policies,
+    list_esxi_power_policies,
 )
 
 from .const import (
@@ -507,7 +507,7 @@ def async_add_services(hass, config_entry):
         try:
             conn_details = async_get_conn_details(host)
             await hass.async_add_executor_job(
-                list_power_policies, hass, target_host, conn_details
+                list_esxi_power_policies, hass, target_host, conn_details
             )
         except Exception as error:  # pylint: disable=broad-except
             _LOGGER.error(str(error))

@@ -1076,7 +1076,7 @@ def list_esxi_hosts(hass, conn_details):
         esx_disconnect(conn)
 
 
-def list_power_policies(hass, target_host_name, conn_details):
+def list_esxi_power_policies(hass, target_host_name, conn_details):
     """List available power policies for a specific host."""
     conn = esx_connect(**conn_details)
     if not conn:
@@ -1174,7 +1174,7 @@ def list_power_policies(hass, target_host_name, conn_details):
         for policy in target_host.config.powerSystemCapability.availablePolicy:
             policy_info = {
                 'short_name': policy.shortName,
-                'full_name': policy.fullName,
+                'full_name': policy.name,
                 'description': getattr(policy, 'description', 'No description available'),
                 'is_current': policy.shortName == current_policy
             }
@@ -1186,9 +1186,7 @@ def list_power_policies(hass, target_host_name, conn_details):
         for policy in available_policies:
             current_marker = " (CURRENT)" if policy['is_current'] else ""
             detail = (
-                f"  - {policy['short_name']}{current_marker}\n"
-                f"    Full Name: {policy['full_name']}\n"
-                f"    Description: {policy['description']}"
+                f"  - {policy['short_name']}{current_marker}"
             )
             policy_details.append(detail)
             _LOGGER.info(detail.replace("    ", ""))
@@ -1198,9 +1196,7 @@ def list_power_policies(hass, target_host_name, conn_details):
             from homeassistant.components import persistent_notification
             notification_message = (
                 f"Power Policies for {host_name}:\n\n" +
-                "\n\n".join(policy_details) +
-                f"\n\nCurrent Policy: {current_policy}\n\n" +
-                "Use the 'short_name' values (like 'static', 'dynamic', 'low') as the 'command' parameter in the host_power_policy service."
+                "\n\n".join(policy_details)
             )
             persistent_notification.create(
                 hass,
