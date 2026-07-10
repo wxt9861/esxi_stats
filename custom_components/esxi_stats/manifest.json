@@ -8,5 +8,5 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/wxt9861/esxi_stats/issues",
   "requirements": ["pyvmomi==9.1.0.0"],
-  "version": "0.8.0"
+  "version": "0.9.0"
 }
