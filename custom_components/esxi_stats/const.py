@@ -32,6 +32,8 @@ CONF_NAME = "name"
 CONF_DS_STATE = "datastore"
 CONF_LIC_STATE = "license"
 CONF_NOTIFY = "notify"
+CONF_FORCE_HOST_POWER_OFF = "force_host_power_off"
+CONF_FORCE_HOST_REBOOT = "force_host_reboot"
 
 DEFAULT_NAME = "ESXi"
 DEFAULT_PORT = 443
@@ -42,6 +44,8 @@ DEFAULT_OPTIONS = {
     "datastore": "free_space_gb",
     "license": "status",
     "notify": "true",
+    "force_host_power_off": False,
+    "force_host_reboot": False,
 }
 
 DATASTORE_STATES = [

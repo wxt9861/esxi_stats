@@ -8,6 +8,8 @@ from homeassistant.core import callback
 
 from .const import (
     CONF_DS_STATE,
+    CONF_FORCE_HOST_POWER_OFF,
+    CONF_FORCE_HOST_REBOOT,
     CONF_LIC_STATE,
     CONF_NOTIFY,
     DOMAIN,
@@ -183,6 +185,18 @@ class ESXiStatsOptionsFlow(config_entries.OptionsFlow):
                     vol.Optional(
                         CONF_NOTIFY,
                         default=self.config_entry.options.get(CONF_NOTIFY, True),
+                    ): bool,
+                    vol.Optional(
+                        CONF_FORCE_HOST_POWER_OFF,
+                        default=self.config_entry.options.get(
+                            CONF_FORCE_HOST_POWER_OFF, False
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_FORCE_HOST_REBOOT,
+                        default=self.config_entry.options.get(
+                            CONF_FORCE_HOST_REBOOT, False
+                        ),
                     ): bool,
                 }
             ),

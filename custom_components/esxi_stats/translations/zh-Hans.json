@@ -32,7 +32,9 @@
                 "data": {
                     "datastore": "数据存储状态属性",
                     "license": "许可证状态属性",
-                    "notify": "创建服务调用通知"
+                    "notify": "创建服务调用通知",
+                    "force_host_power_off": "强制关闭主机电源",
+                    "force_host_reboot": "强制重启主机"
                 },
                 "description": "配置数据存储和许可证传感器的状态属性。"
             }

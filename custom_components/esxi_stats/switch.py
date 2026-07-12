@@ -4,6 +4,7 @@ from datetime import timedelta
 from homeassistant.components.switch import SwitchEntity
 
 from .const import (
+    CONF_FORCE_HOST_POWER_OFF,
     DOMAIN,
     DOMAIN_DATA,
     DEFAULT_NAME,
@@ -315,7 +316,7 @@ class ESXiHostSwitch(SwitchEntity):
                 target_host,
                 "shutdown",
                 conn_details,
-                False,  # force=False - user should manually set maintenance mode first
+                self._config_entry.options.get(CONF_FORCE_HOST_POWER_OFF, False),
                 True    # notify
             )
 
