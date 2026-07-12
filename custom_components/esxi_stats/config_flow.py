@@ -8,6 +8,8 @@ from homeassistant.core import callback
 
 from .const import (
     CONF_DS_STATE,
+    CONF_FORCE_HOST_POWER_OFF,
+    CONF_FORCE_HOST_REBOOT,
     CONF_LIC_STATE,
     CONF_NOTIFY,
     DOMAIN,
@@ -21,6 +23,17 @@ from .esxi import esx_connect, esx_disconnect
 
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _as_bool(value, default=False):
+    """Convert legacy option values into booleans."""
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.strip().lower() in ("1", "true", "yes", "on")
+    if value is None:
+        return default
+    return bool(value)
 
 
 @config_entries.HANDLERS.register(DOMAIN)
@@ -182,7 +195,28 @@ class ESXiStatsOptionsFlow(config_entries.OptionsFlow):
                     ): vol.In(LICENSE_STATES),
                     vol.Optional(
                         CONF_NOTIFY,
-                        default=self.config_entry.options.get(CONF_NOTIFY, True),
+                        default=_as_bool(
+                            self.config_entry.options.get(CONF_NOTIFY, True),
+                            True,
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_FORCE_HOST_POWER_OFF,
+                        default=_as_bool(
+                            self.config_entry.options.get(
+                                CONF_FORCE_HOST_POWER_OFF, False
+                            ),
+                            False,
+                        ),
+                    ): bool,
+                    vol.Optional(
+                        CONF_FORCE_HOST_REBOOT,
+                        default=_as_bool(
+                            self.config_entry.options.get(
+                                CONF_FORCE_HOST_REBOOT, False
+                            ),
+                            False,
+                        ),
                     ): bool,
                 }
             ),
