@@ -43,7 +43,7 @@ DEFAULT_LIC_STATE = "status"
 DEFAULT_OPTIONS = {
     "datastore": "free_space_gb",
     "license": "status",
-    "notify": "true",
+    "notify": True,
     "force_host_power_off": False,
     "force_host_reboot": False,
 }
