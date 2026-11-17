@@ -36,7 +36,6 @@ class ESXIiStatslowHandler(config_entries.ConfigFlow):
     """Config flow for ESXi Stats."""
 
     VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
 
     @staticmethod
     @callback
