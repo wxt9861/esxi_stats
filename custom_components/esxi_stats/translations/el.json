@@ -33,7 +33,9 @@
                 "data": {
                     "datastore": "Χαρακτηριστικό Κατάστασης Datastore",
                     "license": "Χαρακτηριστικό Κατάστασης Αδειών",
-                    "notify": "Δημιουργία service call ειδοποιήσεων"
+                    "notify": "Δημιουργία service call ειδοποιήσεων",
+                    "force_host_power_off": "Εξαναγκασμός τερματισμού λειτουργίας host",
+                    "force_host_reboot": "Εξαναγκασμός επανεκκίνησης host"
                 },
                 "description": "Ρυθμίστε χαρακτηριστικά κατάστασης για αισθητήρες datastore και αδειών."
             }

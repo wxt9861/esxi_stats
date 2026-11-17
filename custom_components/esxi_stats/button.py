@@ -4,6 +4,7 @@ from datetime import datetime
 from homeassistant.components.button import ButtonEntity
 
 from .const import (
+    CONF_FORCE_HOST_REBOOT,
     DOMAIN,
     DOMAIN_DATA,
     DEFAULT_NAME,
@@ -141,7 +142,7 @@ class ESXiHostRebootButton(ButtonEntity):
                 target_host,
                 "reboot",
                 conn_details,
-                False,  # force=False - user should manually set maintenance mode first
+                self._config_entry.options.get(CONF_FORCE_HOST_REBOOT, False),
                 True    # notify
             )
 

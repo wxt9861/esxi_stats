@@ -32,7 +32,9 @@
                 "data": {
                     "datastore": "Attributs d'état du datastore",
                     "license": "Attributs d'état de la licence",
-                    "notify": "Créer des notifications d'appel de service"
+                    "notify": "Créer des notifications d'appel de service",
+                    "force_host_power_off": "Forcer l'arrêt de l'hôte",
+                    "force_host_reboot": "Forcer le redémarrage de l'hôte"
                 },
                 "description": "Configurez les attributs d'état pour les capteurs de datastore et de licence."
             }

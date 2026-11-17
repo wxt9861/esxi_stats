@@ -32,7 +32,9 @@
                 "data": {
                     "datastore": "Attributt for datalagertilstand",
                     "license": "Attributt for lisenstilstand",
-                    "notify": "Lag notifikasjoner for tjenestekall"
+                    "notify": "Lag notifikasjoner for tjenestekall",
+                    "force_host_power_off": "Tving verten til å slå seg av",
+                    "force_host_reboot": "Tving omstart av vert"
                 },
                 "description": "Konfigurer tilstandsattributter for datalager- og lisensensorer."
             }

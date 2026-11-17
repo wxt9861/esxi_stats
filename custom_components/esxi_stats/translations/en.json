@@ -33,7 +33,9 @@
                 "data": {
                     "datastore": "Datastore State Attribute",
                     "license": "License State Attribute",
-                    "notify": "Create service call notifications"
+                    "notify": "Create service call notifications",
+                    "force_host_power_off": "Force host power off",
+                    "force_host_reboot": "Force host reboot"
                 },
                 "description": "Configure state attributes for datastore and license sensors. Changing options will force integration reload."
             }
